@@ -1,11 +1,12 @@
 import paramiko
-
-
+from settings import cfg
 def make_ssh_client(hostname):
-    sshinf = SSH_INFOS[hostname]
-    user = sshinf['user']
-    pword = sshinf['password']
-    port = sshinf.get('port', 22)
+    ssh_configs = cfg['SSH_CONFIGS'] # raises KeyError if section does not exist.
+    
+    conf = ssh_configs[hostname] # raises KeyError if key does not exist
+    print(conf)
+    user,pword,port = conf.split(',')
+    port = int(port)
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh_client.connect(
@@ -69,19 +70,7 @@ def stat_remote_host(hostname, filespec, fields):
         fields_requested += allowed_fields[f] + delimiter
     stat_cmd = 'stat -c {} {}'.format(fields_requested,filespec)
     cl=make_ssh_client(hostname)
-    stdin,stdout,stderr=def make_ssh_client(hostname):
-    sshinf = SSH_INFOS[hostname]
-    user = sshinf['user']
-    pword = sshinf['password']
-    port = sshinf.get('port', 22)
-    ssh_client = paramiko.SSHClient()
-    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh_client.connect(
-        hostname, username=user,password=pword,port=port,
-        allow_agent=False, look_for_keys=False
-        )
-    return ssh_client
-cl.exec_command(stat_cmd)
+    stdin,stdout,stderr=cl.exec_command(stat_cmd)
     for l in stderr.readlines():
         print(l)
     ret_list=[]
