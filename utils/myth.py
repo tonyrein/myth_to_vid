@@ -34,7 +34,9 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None):
     if len(filelist) > 0:
         ts = TVRecordingService()
         for f in filelist:
-            if not ts.is_tv_recording(hostname, filename)
+            if not ts.is_tv_recording(f):
+                pass
+            
     
     
     
@@ -81,9 +83,11 @@ class TVRecordingService(object):
     but this will be more complicated, so we'll skip it for now.
     """
     def __init__(self,hostname=None):
-        pass
+        if hostname is None:
+            hostname = cfg['MYTHTV_CONTENT'].get('MYTHBACKEND')
+        self.hostname = hostname
     
-    def is_tv_recording(self,hostname, filename):
+    def is_tv_recording(self, filename):
         pass
 
 class MythApi(object):
