@@ -1,6 +1,9 @@
 # Utility code for dealing with MythTV.
+from glob import glob
+import os
+import os.path
 
-from myth_to_vid.settings import cfg
+from myth_to_vid.settings import cfg, BASE_DIR
 
 def initialize_orphans_list(from_dir=None, filename_pattern=None):
     """
@@ -22,7 +25,19 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None):
         that it's accessible as if it were on localhost.
     
     """
-    pass
+    if from_dir is None:
+        from_dir = os.path.join(BASE_DIR, cfg['MYTHTV_CONTENT'].get('TV_RECORDINGS_DIR'))
+    if filename_pattern is None:
+        filename_pattern = cfg['MYTHTV_CONTENT'].get('RECORDING_FILENAME_PATTERN')
+    filespec = os.path.join(from_dir, filename_pattern)
+    filelist = [ f for f in glob(filespec) if os.path.isfile(f) ] # don't bother with directories
+    if len(filelist) > 0:
+        ts = TVRecordingService()
+        for f in filelist:
+            if not ts.is_tv_recording(hostname, filename)
+    
+    
+    
 
 def make_video_sample(o):
     """
@@ -39,11 +54,10 @@ def make_video_sample(o):
         Linux or a closely-related OS such as FreeBSD, with a POSIX or near-POSIX
         environment. The code may run successfully on other environments, such as
         a Windows computer with the Cygwin tools installed, but this has not been tested.
-        The reason that this is required is that the conversion is done 
+        The reason that this is required is that the conversion is done using ffmpeg,
+        an external program.
         
     """
-    pass
-    
     pass
 
 class TVRecordingService(object):
@@ -69,5 +83,13 @@ class TVRecordingService(object):
     def __init__(self,hostname=None):
         pass
     
-    
+    def is_tv_recording(self,hostname, filename):
+        pass
+
+class MythApi(object):
+    """
+    Wrapper class for calls to MythTV API
+    """
+    pass
+
 
