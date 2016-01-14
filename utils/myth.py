@@ -1,7 +1,9 @@
 # Utility code for dealing with MythTV.
 from glob import glob
+import json
 import os
 import os.path
+import urllib.request
 
 from myth_to_vid.settings import cfg, BASE_DIR
 
@@ -32,10 +34,13 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None):
     filespec = os.path.join(from_dir, filename_pattern)
     filelist = [ f for f in glob(filespec) if os.path.isfile(f) ] # don't bother with directories
     if len(filelist) > 0:
-        ts = TVRecordingService()
+        api = MythApi()
+        counter = 0
         for f in filelist:
-            if not ts.is_tv_recording(f):
-                pass
+            if not api.is_tv_recording(f):
+                counter += 1
+                print("{} is an orphan.".format(f))
+            print("Found {} total orphans.".format(counter))
             
     
     
@@ -90,10 +95,170 @@ class TVRecordingService(object):
     def is_tv_recording(self, filename):
         pass
 
+
 class MythApi(object):
     """
-    Wrapper class for calls to MythTV API
+    Wrapper for calls to MythTV API.
+    Singleton
     """
-    pass
-
-
+    __instance = None
+    def __new__(cls, server_name=cfg['MYTHTV_CONTENT'].get('MYTHBACKEND'),
+                 server_port=cfg['MYTHTV_CONTENT'].get('API_PORT') ):
+        """
+        Constructor.
+        If __instance isn't already there, build it and initialize
+        some of its data. Then return it.
+        """
+        if MythApi.__instance is None:
+            MythApi.__instance = object.__new__(cls)
+            MythApi.__instance.server_name = server_name
+            MythApi.__instance.server_port = server_port
+            MythApi.__instance._tv_recordings = None # Don't get this unless and until it's needed.
+            MythApi.__instance._storage_groups = MythApi.__instance._fill_myth_storage_group_list()
+            MythApi.__instance.default_directory = MythApi.__instance.storage_dir_for_name('Default', server_name)
+        return MythApi.__instance
+    
+    """
+    This is a property because initializing the list is expensive,
+    and this is a simple way to make the initialization "lazy."
+    """
+    @property
+    def tv_recordings(self):
+        if self._tv_recordings is None:
+            self._tv_recordings = self.get_mythtv_recording_list()
+        return self._tv_recordings
+    
+    """
+    storage_groups is a property because
+         it's read-only.
+    """
+    @property
+    def storage_groups(self):
+        return self._storage_groups    
+    """
+    Make a call to the MythTV API and request JSON back from MythTV server.
+    Pass:
+      * name of API service
+      * name of API call within service
+      * data (optional) - a dict of parameters for the call
+      * headers (optional)
+    Returns:
+      * A JSON object built from the data returned from the MythTV server
+    Raises:
+      * HTTPError
+    """
+    def _call_myth_api(self,service_name, call_name, data=None, headers={}):
+        # Tell server to send back JSON:
+        headers['Accept'] = 'application/json'
+        
+        if data:
+            DATA=urllib.parse.urlencode(data)
+            DATA=DATA.encode('utf-8')
+        else:
+            DATA=None
+        
+        # Assemble url:
+        url = (
+            "http://{}:{}/{}/{}".format(self.server_name, self.server_port, service_name, call_name)
+            )
+        # Make a Request object and pass it to the server.
+        # Use the returned result to make some JSON to return to our caller
+        req = urllib.request.Request(url, data=DATA, headers=headers)
+        if DATA:
+            req.add_header("Content-Type","application/x-www-form-urlencoded;charset=utf-8")
+        try:
+            with urllib.request.urlopen(req) as response:
+                the_answer = response.read()
+                if the_answer:
+                    the_answer = the_answer.decode('utf-8')
+                    return json.loads(the_answer)
+        except Exception as e:
+            return { 'Exception': e.__repr__() }
+        
+    """
+    Gets list of storage groups available to
+    MythTV server self.server_name.
+     Pass: self
+     Return: list, each element of which is a JSON object with the following keys:
+       Id,  GroupName,  HostName,  DirName
+    """
+    def _fill_myth_storage_group_list(self):
+        j = self._call_myth_api('Myth', 'GetStorageGroupDirs')
+        return j['StorageGroupDirList']['StorageGroupDirs']
+    
+    """
+    Pass: Storage group name and host name
+    Return: Disk directory, or None if no match.
+    
+    """
+    def storage_dir_for_name(self, group_name, hostname=None):
+        if hostname is None:
+            hostname = self.server_name
+        for g in self.storage_groups:
+            if g['GroupName'] == group_name and g['HostName'] == hostname:
+                return g['DirName']
+        return None
+    
+    """
+    Pass: Channel id, for example '1008'
+    Returns: an ordered dict with the following keys:
+    ['@xmlns:xsi', '@version', '@serializerVersion', 'ChanId', 'ChanNum', 'CallSign',
+     'IconURL', 'ChannelName', 'MplexId', 'TransportId', 'ServiceId', 'NetworkId',
+      'ATSCMajorChan', 'ATSCMinorChan', 'Format', 'Modulation', 'Frequency', 'FrequencyId',
+       'FrequencyTable', 'FineTune', 'SIStandard', 'ChanFilters', 'SourceId', 'InputId',
+        'CommFree', 'UseEIT', 'Visible', 'XMLTVID', 'DefaultAuth', 'Programs']
+    This assumes that a valid channel id is passed. If the channel id is invalid, the
+    api call will return an exception code.
+    """
+    def get_channel_info(self,channel_id):
+        res_dict = self._call_myth_api('Channel', 'GetChannelInfo',
+                 { 'ChanID': channel_id } )
+        if 'Exception' in res_dict:
+            raise Exception("Problem getting channel info for channel {}: {}".format(channel_id, res_dict['Exception']))
+        else:
+            return res_dict['ChannelInfo']
+    
+    
+    """
+    Queries the MythAPI server for a list of the tv recordings.
+    Pass: nothing
+    Return: a list, each element of which is an ordereddict with the following keys:
+       StartTime, EndTime, Title, SubTitle, Category, CatType, Repeat, VideoProps,
+       AudioProps, SubProps, SeriesId, ProgramId, Stars, FileSize, LastModified, ProgramFlags,
+       FileName, HostName, Airdate, Description, Inetref, Season, Episode, Channel,
+       Recording, Artwork,
+       FileSpec, Duration
+       Note that the values for several of these keys (Channel, Recording, Artwork) are
+       ordereddicts in turn.
+       For Channel, the keys are:
+           ChanId,  ChanNum,  CallSign,  IconURL,  ChannelName,  MplexId,  TransportId,  ServiceId,
+            NetworkId,  ATSCMajorChan,  ATSCMinorChan,  Format,  Modulation,  Frequency,  FrequencyId,
+             FrequencyTable,  FineTune,  SIStandard,  ChanFilters,  SourceId,  InputId,  CommFree,
+              UseEIT,  Visible,  XMLTVID,  DefaultAuth,  Programs
+      For Recording, the keys are:
+        Status,  Priority,  StartTs,  EndTs,  RecordId,  RecGroup,  PlayGroup,  StorageGroup,  RecType,  DupInType,  DupMethod,  EncoderId,  Profile
+      For Artwork, the one key is:
+        ArtworkInfos
+        
+      
+      
+      The 'StartTs' and 'EndTs' fields are used to calculate the duration -- these represent the
+      actual start and end times of the recording; the fields 'StartTime' and 'EndTime' are the
+      scheduled times, and do not reflect the fact that the recording may have started and/or
+      ended at other than the scheduled times.
+      
+    """
+    def get_mythtv_recording_list(self):
+        res_dict = self._call_myth_api('Dvr', 'GetRecordedList')
+        if 'Exception' in res_dict:
+            raise Exception("Problem getting MythTV recording list: {}".format(res_dict['Exception']))
+        else:
+            return res_dict['ProgramList']['Programs']
+    
+    
+    def is_tv_recording(self,filename):
+        """
+        Is this filename associated with a MythTV tv recording?
+        """
+        m = [ p for p in self.tv_recordings if p['FileName'] == filename ]
+        return len(m) > 0
