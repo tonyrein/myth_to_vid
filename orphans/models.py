@@ -19,6 +19,7 @@ class Orphan(models.Model):
     channel_id = models.CharField(max_length=4)
     channel_number = models.SmallIntegerField()
     channel_name = models.CharField(max_length=256)
+    
      
     @property
     def samplename(self): #"Calculated" field -- name of sample file

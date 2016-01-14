@@ -1,12 +1,18 @@
 # Utility code for dealing with MythTV.
+import datetime
 from glob import glob
 import json
-import os
 import os.path
+import re
 import urllib.request
 
 from myth_to_vid.settings import cfg, BASE_DIR
 
+mythtv_filename_pattern = re.compile('\d{4}_\d{14}\.')
+REC_FILENAME_DATE_FORMAT = '%Y%m%d%H%M%S'
+BYTES_PER_MINUTE=38928300 # approx. 39 million bytes/minute in a
+                            # SD Mythtv recording
+                            
 def initialize_orphans_list(from_dir=None, filename_pattern=None):
     """
     Reads files matching filename_pattern in from_dir. Presumably,
@@ -35,16 +41,37 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None):
     filelist = [ f for f in glob(filespec) if os.path.isfile(f) ] # don't bother with directories
     if len(filelist) > 0:
         api = MythApi()
-        counter = 0
+        ocounter = 0
+        pcounter = 0
         for f in filelist:
-            if not api.is_tv_recording(f):
-                counter += 1
+            dir,fn = os.path.split(f) # split into path and filename
+            if not api.is_tv_recording(fn):
+                ocounter += 1
                 print("{} is an orphan.".format(f))
-            print("Found {} total orphans.".format(counter))
+            else:
+                pcounter += 1
+                print("{} is a tv recording.".format(f))
+                
+        print("Found {} total orphans and {} total tv recordings.".format(ocounter,pcounter))
             
     
-    
-    
+def parse_myth_filename(filename):
+    # Verify filename fits pattern - "\d{4}_\d{14}\."
+    # If not, bail out.
+    if not mythtv_filename_pattern.match(filename):
+        raise Exception('Filename {} does not fit pattern for a MythTV filename.'.format(filename))
+    # split filename into components:
+    (channel_id,rest) = filename.split('_')
+    dt_portion=rest[:14]
+    #dt_portion is a timestamp in the format: YYYYMMDDHHMMSS. The
+    # timezone is not given in the string, but it is UTC.
+    # Make a UTC datetime object from it, then change to local timezone:
+    utc_dt = datetime.datetime.strptime(dt_portion,REC_FILENAME_DATE_FORMAT)
+    utc_dt = ensure_tz_aware(utc_dt)
+    utc_dt = ensure_utc(utc_dt)
+    local_dt = utc_dt_to_local_dt(utc_dt)
+
+    return [ local_dt, channel_id ]
 
 def make_video_sample(o):
     """
@@ -120,7 +147,7 @@ class MythApi(object):
     
     """
     This is a property because initializing the list is expensive,
-    and this is a simple way to make the initialization "lazy."
+    and this is a simple way to make the initialization "'1013_20140518210000.mpg'lazy."
     """
     @property
     def tv_recordings(self):
