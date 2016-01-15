@@ -1,4 +1,5 @@
 # Utility code for dealing with MythTV.
+import configparser
 import datetime
 from glob import glob
 import json
@@ -10,14 +11,14 @@ import urllib.request
 
 from utils.date_and_time import ensure_tz_aware, ensure_utc, utc_dt_to_local_dt
 from orphans.models import Orphan
-from myth_to_vid.settings import cfg, BASE_DIR
+from django.conf import settings
 
 mythtv_filename_pattern = re.compile('\d{4}_\d{14}\.')
 REC_FILENAME_DATE_FORMAT = '%Y%m%d%H%M%S'
 BYTES_PER_MINUTE=38928300 # approx. 39 million bytes/minute in a
                             # SD Mythtv recording
                             
-def initialize_orphans_list(from_dir=None, filename_pattern=None):
+def initialize_orphans_list(from_dir=None, filename_pattern=None, override=False):
     """
     Reads files matching filename_pattern in from_dir. Presumably,
     these are files created by MythTV and were at one time associated with
@@ -35,10 +36,24 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None):
     ASSUMPTIONS:
         * from_dir is on localhost, or mounted via a network fs such as sshfs so
         that it's accessible as if it were on localhost.
+        * no Orphan entries currently exist, or override==True
     
     """
+    # Any orphans there yet?
+    if Orphan.objects.count() > 0:
+        if override == False:
+            raise Exception('initialize_orphans_list called with override == False, but Orphans table already has entries')
+        else:
+            # Dump existing entries...
+            Orphan.objects.all().delete()
+    # Read configuration...
+    config_file = os.path.join(settings.BASE_DIR, 'mtv_settings.cfg')
+    cfg = configparser.ConfigParser(interpolation=None)
+    config_files_read = cfg.read(config_file)
+    if len(config_files_read) == 0:
+        raise Exception('Could not find config file {}'.format(config_file))
     if from_dir is None:
-        from_dir = os.path.join(BASE_DIR, cfg['MYTHTV_CONTENT'].get('TV_RECORDINGS_DIR'))
+        from_dir = os.path.join(settings.BASE_DIR, cfg['MYTHTV_CONTENT'].get('TV_RECORDINGS_DIR'))
     if filename_pattern is None:
         filename_pattern = cfg['MYTHTV_CONTENT'].get('RECORDING_FILENAME_PATTERN')
     filespec = os.path.join(from_dir, filename_pattern)
@@ -64,6 +79,7 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None):
                 o.filesize = os.path.getsize(f)
                 o.duration = int(round(o.filesize/BYTES_PER_MINUTE))
                 o.hostname = cfg['MYTHTV_CONTENT'].get('MYTHBACKEND')
+                ocounter += 1
                 o.save()
                 
         print("Found {} total orphans.".format(ocounter))
@@ -108,7 +124,7 @@ def make_video_sample(o):
     """
     pass
 
-class TVRecordingService(object):
+# class TVRecordingService(object):
     """
     Uses MythTV API calls to get a list of TV recordings for use
     by Orphan-related code. For example, initialize_orphans_list
@@ -128,13 +144,13 @@ class TVRecordingService(object):
     model could be used, linked to the MythTV backend's database,
     but this will be more complicated, so we'll skip it for now.
     """
-    def __init__(self,hostname=None):
-        if hostname is None:
-            hostname = cfg['MYTHTV_CONTENT'].get('MYTHBACKEND')
-        self.hostname = hostname
-    
-    def is_tv_recording(self, filename):
-        pass
+#     def __init__(self,hostname=None):
+#         if hostname is None:
+#             hostname = cfg['MYTHTV_CONTENT'].get('MYTHBACKEND')
+#         self.hostname = hostname
+#     
+#     def is_tv_recording(self, filename):
+#         pass
 
 
 class MythApi(object):
@@ -143,13 +159,22 @@ class MythApi(object):
     Singleton
     """
     __instance = None
-    def __new__(cls, server_name=cfg['MYTHTV_CONTENT'].get('MYTHBACKEND'),
-                 server_port=cfg['MYTHTV_CONTENT'].get('API_PORT') ):
+    def __new__(cls, server_name=None, server_port=None):
         """
         Constructor.
         If __instance isn't already there, build it and initialize
         some of its data. Then return it.
         """
+        # Read configuration...
+        config_file = os.path.join(settings.BASE_DIR, 'mtv_settings.cfg')
+        cfg = configparser.ConfigParser(interpolation=None)
+        config_files_read = cfg.read(config_file)
+        if len(config_files_read) == 0:
+            raise Exception('Could not find config file {}'.format(config_file))
+        if server_name is None:
+            server_name=cfg['MYTHTV_CONTENT'].get('MYTHBACKEND')
+        if server_port is None:
+            server_port=cfg['MYTHTV_CONTENT'].get('API_PORT')
         if MythApi.__instance is None:
             MythApi.__instance = object.__new__(cls)
             MythApi.__instance.server_name = server_name
@@ -258,7 +283,6 @@ class MythApi(object):
             raise Exception("Problem getting channel info for channel {}: {}".format(channel_id, res_dict['Exception']))
         else:
             return res_dict['ChannelInfo']
-    
     
     """
     Queries the MythAPI server for a list of the tv recordings.
