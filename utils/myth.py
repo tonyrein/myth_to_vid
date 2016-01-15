@@ -6,6 +6,10 @@ import os.path
 import re
 import urllib.request
 
+
+
+from utils.date_and_time import ensure_tz_aware, ensure_utc, utc_dt_to_local_dt
+from orphans.models import Orphan
 from myth_to_vid.settings import cfg, BASE_DIR
 
 mythtv_filename_pattern = re.compile('\d{4}_\d{14}\.')
@@ -42,17 +46,27 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None):
     if len(filelist) > 0:
         api = MythApi()
         ocounter = 0
-        pcounter = 0
         for f in filelist:
-            dir,fn = os.path.split(f) # split into path and filename
+            orphandir,fn = os.path.split(f) # split into path and filename
             if not api.is_tv_recording(fn):
-                ocounter += 1
-                print("{} is an orphan.".format(f))
-            else:
-                pcounter += 1
-                print("{} is a tv recording.".format(f))
+                o = Orphan()
+                local_dt, channel_id = parse_myth_filename(fn)
+                o.start_date = local_dt.date()
+                o.start_time = local_dt.time()
+                ci = api.get_channel_info(channel_id)
+                o.channel_name = ci['ChannelName']
+                o.channel_number = ci['ChanNum']
+                o.channel_id = channel_id
+                o.title = ''
+                o.subtitle = ''
+                o.filename = fn
+                o.directory = orphandir
+                o.filesize = os.path.getsize(f)
+                o.duration = int(round(o.filesize/BYTES_PER_MINUTE))
+                o.hostname = cfg['MYTHTV_CONTENT'].get('MYTHBACKEND')
+                o.save()
                 
-        print("Found {} total orphans and {} total tv recordings.".format(ocounter,pcounter))
+        print("Found {} total orphans.".format(ocounter))
             
     
 def parse_myth_filename(filename):
