@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'orphans',
     'utils',
     'bootstrap3',
+    'django_tables2',
 ]
 
 MIDDLEWARE_CLASSES = [

@@ -1,4 +1,7 @@
+
 {% extends 'base.html' %}
+{% load render_table from django_tables2 %}
+
 {% block extra_head %}
 	<title>Orphan List</title>
 
@@ -6,6 +9,8 @@
 {% block content %}
 	<h2>List of Orphan Files</h2>
 	<hr/>
+	{% render_table table %}
+	<!-- 
 	<ul>
 		{% for orphan in object_list %}
 			<li>{{ orphan.filename }} {{ orphan.start_date }} {{ orphan.start_time }} {{ orphan.filesize }}</li>
@@ -13,7 +18,7 @@
 	
 	
 	</ul>
-	
+	 -->
 
 
 {% endblock %}
