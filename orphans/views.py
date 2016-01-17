@@ -38,7 +38,8 @@ class OrphanListView(SingleTableView):
 
 class OrphanUpdateView(UpdateView):
     model = Orphan
-    fields = [ 'start_date','start_time','channel_number','channel_name','title','subtitle','duration','filesize','samplename']
+    readonly_fields = [ 'start_date','start_time','channel_number','channel_name','duration','filesize','samplename'  ]
+    fields = [ 'title','subtitle']
 
 class OrphanDetailView(DetailView):
     model = Orphan
