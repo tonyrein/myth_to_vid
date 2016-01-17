@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.template import defaultfilters
-from django.views.generic import ListView
+from django.views.generic import ListView, UpdateView
+from django.views.generic.detail import DetailView
 
 import django_tables2 as djt2
 from django_tables2 import  SingleTableView
@@ -9,6 +10,7 @@ from django_tables2.utils import Accessor, A  # alias for Accessor
 
 
 from orphans.models import Orphan
+
 # Create your views here.
 
 # class OrphanListView(ListView):
@@ -17,7 +19,7 @@ from orphans.models import Orphan
 
 # table to use when displaying OrphanList
 class OrphanListTable(djt2.Table):
-    play = djt2.LinkColumn('mythcontent:mythcontent-edit-orphan', text='Edit Entry', args=[ A('intid')], attrs={ 'target': '_blank' }, empty_values=(), orderable=False )
+    play = djt2.LinkColumn('orphans:OrphanUpdateView', text='Edit Entry', args=[ A('intid')], attrs={ 'target': '_blank' }, empty_values=(), orderable=False )
     samplename = djt2.Column()
     # Format filesize and time columns
     def render_filesize(self,value):
@@ -33,5 +35,10 @@ class OrphanListTable(djt2.Table):
 class OrphanListView(SingleTableView):
     model = Orphan
     table_class = OrphanListTable
-    
 
+class OrphanUpdateView(UpdateView):
+    model = Orphan
+    fields = [ 'start_date','start_time','channel_number','channel_name','title','subtitle','duration','filesize','samplename']
+
+class OrphanDetailView(DetailView):
+    model = Orphan
