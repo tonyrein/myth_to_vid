@@ -1,12 +1,10 @@
-from django.shortcuts import render
-from django.http import HttpResponse
 from django.template import defaultfilters
-from django.views.generic import ListView, UpdateView
+from django.views.generic import UpdateView
 from django.views.generic.detail import DetailView
 
 import django_tables2 as djt2
 from django_tables2 import  SingleTableView
-from django_tables2.utils import Accessor, A  # alias for Accessor
+from django_tables2.utils import A  # alias for Accessor
 
 
 from orphans.models import Orphan

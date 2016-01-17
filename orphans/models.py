@@ -30,7 +30,7 @@ class Orphan(models.Model):
  
      
     def get_absolute_url(self):
-        return reverse('orphan_detail', args=[str(self.intid)])
+        return reverse('orphans:OrphanDetailView', args=[str(self.intid)])
     
     class Meta:
         managed = True
