@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block extra_header %}
+	<title>Orphan Number {{ object.intid }}</title>
+{% endblock %}
+{% block content %}
+	<h2>Orphan Number {{ object.intid }}</h2>
+	<p>Recording started {{ object.start_date }} at {{ object.start_time }},</p>
+	<p> on channel {{ object.channel_number }} ({{ object.channel_name }}) and lasted {{ object.duration }} minutes.</p>
+	<p>Title: {{ object.title }}</p>
+	<p>Subtitle: {{ object.subtitle }}</p>
+	
+
+
+{% endblock %}
