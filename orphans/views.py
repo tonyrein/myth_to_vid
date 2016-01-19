@@ -1,6 +1,7 @@
+from django.core.urlresolvers import reverse_lazy
+from django.http.response import HttpResponseRedirect
 from django.template import defaultfilters
-from django.views.generic import UpdateView
-from django.views.generic.detail import DetailView
+from django.views.generic import DeleteView, DetailView, UpdateView 
 
 import django_tables2 as djt2
 from django_tables2 import  SingleTableView
@@ -29,7 +30,7 @@ class OrphanListTable(djt2.Table):
         attrs = { 'class': 'paleblue' }
         exclude = ('samplename','intid', 'channel_id','filename','hostname','directory')
         sequence = ('play','channel_number', 'channel_name', 'start_date', 'start_time','filesize','duration','title','subtitle')
-
+DeleteView
 class OrphanListView(SingleTableView):
     model = Orphan
     table_class = OrphanListTable
@@ -41,3 +42,15 @@ class OrphanUpdateView(UpdateView):
 
 class OrphanDetailView(DetailView):
     model = Orphan
+
+class OrphanDeleteView(DeleteView):
+    model = Orphan
+    success_url = reverse_lazy('orphans:OrphanListView')
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        print("About to delete Orphan {}.".format(self.object.intid))
+        print("Filename: {}".format(self.object.filename))
+        print("Directory: {}".format(self.object.directory))
+        #self.object.delete()
+        return HttpResponseRedirect(self.get_success_url())
+        

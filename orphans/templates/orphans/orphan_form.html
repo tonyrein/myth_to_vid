@@ -16,8 +16,10 @@
 	<form method="post">
 		{% csrf_token %}
 		{{ form.as_p }}
-		<input type="submit"/>
+		<input type="submit" value="Save"/>
 	</form>
+	<br/>
+	<a href="{% url 'orphans:OrphanDeleteView' object.intid %}">Delete</a>
 	
 
 
