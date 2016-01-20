@@ -5,6 +5,7 @@ from glob import glob
 import json
 import os.path
 import re
+from socket import gethostname
 import urllib.request
 
 
@@ -52,6 +53,11 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None, override=False
     config_files_read = cfg.read(config_file)
     if len(config_files_read) == 0:
         raise Exception('Could not find config file {}'.format(config_file))
+    
+    # Verify running on localhost:
+    mythhost = cfg['MYTHTV_CONTENT'].get('MYTHBACKEND')
+    if mythhost != gethostname():
+        raise Exception('This version must run on MythTV backend - remote host functionality not yet implemented.')
     if from_dir is None:
         from_dir = os.path.join(settings.BASE_DIR, cfg['MYTHTV_CONTENT'].get('TV_RECORDINGS_DIR'))
     if filename_pattern is None:
@@ -78,7 +84,7 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None, override=False
                 o.directory = orphandir
                 o.filesize = os.path.getsize(f)
                 o.duration = int(round(o.filesize/BYTES_PER_MINUTE))
-                o.hostname = cfg['MYTHTV_CONTENT'].get('MYTHBACKEND')
+                o.hostname = mythhost
                 ocounter += 1
                 o.save()
                 

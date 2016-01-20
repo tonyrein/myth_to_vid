@@ -1,3 +1,5 @@
+import socket
+
 from django.core.urlresolvers import reverse_lazy
 from django.http.response import HttpResponseRedirect
 from django.template import defaultfilters
@@ -41,10 +43,18 @@ class OrphanDetailView(DetailView):
     model = Orphan
 
 class OrphanDeleteView(DeleteView):
+    """
+    Deletes the file associated with the Orphan object,
+    then deletes the Orphan object.
+    
+    Assumes that the file is on localhost.
+    """
     model = Orphan
     success_url = reverse_lazy('orphans:OrphanListView')
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
+        if (self.object.filename != socket.gethostname()):
+            raise Exception("This version of this method requires that it be running on the same host as the recording file is found on.")
         print("About to delete Orphan {}.".format(self.object.intid))
         print("Filename: {}".format(self.object.filename))
         print("Directory: {}".format(self.object.directory))
