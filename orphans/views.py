@@ -12,13 +12,10 @@ from orphans.models import Orphan
 
 # Create your views here.
 
-# class OrphanListView(ListView):
-#     model = Orphan
-
-
 # table to use when displaying OrphanList
 class OrphanListTable(djt2.Table):
-    play = djt2.LinkColumn('orphans:OrphanUpdateView', text='Edit Entry', args=[ A('intid')], attrs={ 'target': '_blank' }, empty_values=(), orderable=False )
+#     play = djt2.LinkColumn('orphans:OrphanUpdateView', text='Edit Entry', args=[ A('intid')], attrs={ 'target': '_blank' }, empty_values=(), orderable=False )
+    play = djt2.LinkColumn('orphans:OrphanUpdateView', text='Edit Entry', args=[ A('intid')], empty_values=(), orderable=False )
     samplename = djt2.Column()
     # Format filesize and time columns
     def render_filesize(self,value):
@@ -30,7 +27,7 @@ class OrphanListTable(djt2.Table):
         attrs = { 'class': 'paleblue' }
         exclude = ('samplename','intid', 'channel_id','filename','hostname','directory')
         sequence = ('play','channel_number', 'channel_name', 'start_date', 'start_time','filesize','duration','title','subtitle')
-DeleteView
+# DeleteView
 class OrphanListView(SingleTableView):
     model = Orphan
     table_class = OrphanListTable

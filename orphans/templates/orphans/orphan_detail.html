@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block extra_header %}
+{% block extra_head %}
 	<title>Orphan Number {{ object.intid }}</title>
 {% endblock %}
 {% block content %}
@@ -8,7 +8,8 @@
 	<p> on channel {{ object.channel_number }} ({{ object.channel_name }}) and lasted {{ object.duration }} minutes.</p>
 	<p>Title: {{ object.title }}</p>
 	<p>Subtitle: {{ object.subtitle }}</p>
-	
+	<br/>
+	<a class="btn btn-primary" href="{% url 'orphans:OrphanListView' %}">Back to List</a>
 
 
 {% endblock %}
