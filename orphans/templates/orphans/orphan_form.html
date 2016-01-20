@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block extra_header %}
+{% block extra_head %}
 	<title>Editing Orphan Number {{ object.intid }}</title>
 {% endblock %}
 {% block content %}
@@ -7,20 +7,27 @@
 	<p>Recording started {{ object.start_date }} at {{ object.start_time }},</p>
 	<p> on channel {{ object.channel_number }} ({{ object.channel_name }}) and lasted {{ object.duration }} minutes.</p>
 	<hr/>
+	<div class="container">
+
+    <div class="col-md-6">
+	<form method="post">
+		{% csrf_token %}
+		{{ form.as_p }}
+		<input class="btn btn-primary" type="submit" value="Save"/>
+		<a class="btn btn-primary" href="{% url 'orphans:OrphanDeleteView' object.intid %}">Delete</a>
+	</form>
+	</div>
+
+	<div class="col-md-6">
 	<video
     	 src="{{MEDIA_URL}}vidsamples/{{orphan.samplename}}" controls >
     	 Could not embed this video. Use this link instead:<br/>
     	 <a href="{{MEDIA_URL}}vidsamples/{{orphan.samplename}}">Click here to play the file</a>
     </video>
-	<hr/>
-	<form method="post">
-		{% csrf_token %}
-		{{ form.as_p }}
-		<input type="submit" value="Save"/>
-	</form>
-	<br/>
-	<a href="{% url 'orphans:OrphanDeleteView' object.intid %}">Delete</a>
+    <br/>
+    <p>Preview of recording (first ten minutes)</p>
+    </div>
 	
-
+	</div> <!-- end container -->
 
 {% endblock %}

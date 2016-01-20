@@ -1,25 +1,19 @@
 
 {% extends 'base.html' %}
 {% load render_table from django_tables2 %}
-
+{% load staticfiles %}
 {% block extra_head %}
 	<title>Orphan List</title>
+	<link rel="stylesheet" href="{% static 'django_tables2/themes/paleblue/css/screen.css' %}" />
+	
+	<!--
 	<link rel="stylesheet" href="{{ STATIC_URL }}django_tables2/themes/paleblue/css/screen.css" />
-
+	-->
 {% endblock %}
 {% block content %}
 	<h2>List of Orphan Files</h2>
 	<hr/>
 	{% render_table table %}
-	<!-- 
-	<ul>
-		{% for orphan in object_list %}
-			<li>{{ orphan.filename }} {{ orphan.start_date }} {{ orphan.start_time }} {{ orphan.filesize }}</li>
-		{% endfor %}
 	
-	
-	</ul>
-	 -->
-
 
 {% endblock %}
