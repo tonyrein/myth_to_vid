@@ -1,3 +1,5 @@
+import os
+import os.path
 import socket
 
 from django.core.urlresolvers import reverse_lazy
@@ -60,6 +62,8 @@ class OrphanDeleteView(DeleteView):
         print("About to delete Orphan {}.".format(self.object.intid))
         print("Filename: {}".format(self.object.filename))
         print("Directory: {}".format(self.object.directory))
-        #self.object.delete()
+        filespec = os.path.join(self.object.directory,self.object.filename)
+        os.remove(filespec)
+        self.object.delete()
         return HttpResponseRedirect(self.get_success_url())
         
