@@ -22,6 +22,8 @@ class OrphanListTable(djt2.Table):
     # Format filesize and time columns
     def render_filesize(self,value):
         return defaultfilters.filesizeformat(value)
+    def render_start_date(self,value):
+        return defaultfilters.date(value, 'D, m/d/Y')
     def render_start_time(self,value):
         return defaultfilters.time(value, 'h:i A')
     class Meta:
