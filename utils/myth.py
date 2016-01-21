@@ -110,7 +110,7 @@ def parse_myth_filename(filename):
 
     return [ local_dt, channel_id ]
 
-def make_video_samples(override=False):
+def make_video_sample(o, override):
     """
     This method generates video samples from the
     original recording files. The samples is
@@ -148,32 +148,34 @@ def make_video_samples(override=False):
     already_there = []
     to_do = []
     outdir = '/home/tony/devel/myth_to_vid/orphans/media/vidsamples'
-    for o in Orphan.objects.all():
-        # don't bother with zero-length files...
-        if o.filesize == 0:
-            zero_bytes.append(o)
-        else:
-            infilespec = os.path.join(o.directory, o.filename)
-            outfile = os.path.splitext(o.filename)[0] + '.ogv'
-            outfilespec = os.path.join(outdir,outfile)
-            if os.path.isfile(outfilespec) and override == False:
-                already_there.append(o)
-            else:
-                cmd = [
-                       converter,
-                       '-ss', '00:00:00',
-                       '-i', infilespec,
-                       '-acodec','libvorbis',
-                       '-vcodec', 'libtheora',
-                       '-qscale:v', vidqual,
-                       '-t', duration,
-                       outfilespec
-                       ]
-                to_do.append([o,cmd])
-                print("About to execute:")
-                print(cmd)
-        return(zero_bytes,already_there,to_do)
+    
+    # don't bother with zero-byte files...
+    if o.filesize == 0:
+        return ['empty', o]
+    
+    infilespec = os.path.join(o.directory, o.filename)
+    outfile = os.path.splitext(o.filename)[0] + '.ogv'
+    outfilespec = os.path.join(outdir,outfile)
+    if override == False and os.path.exists(outfilespec):
+        return ['already_there', o]
+    cmd = [
+           converter,
+           '-ss', '00:00:00',
+           '-i', infilespec,
+           '-acodec','libvorbis',
+           '-vcodec', 'libtheora',
+           '-qscale:v', vidqual,
+           '-t', duration,
+           outfilespec
+           ]
+    return ['cmd',o]
 
+
+def make_video_samples(override=False):
+    retlist = []
+    for o in Orphan.objects.all():
+        retlist.append(make_video_sample(o, override))
+    return retlist
 
 class MythApi(object):
     """
