@@ -57,9 +57,10 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None, override=False
     # Verify running on localhost:
     mythhost = cfg['MYTHTV_CONTENT'].get('MYTHBACKEND')
     if mythhost != gethostname():
-        raise Exception('This version must run on MythTV backend - remote host functionality not yet implemented.')
+        pass
+#         raise Exception('This version must run on MythTV backend - remote host functionality not yet implemented.')
     if from_dir is None:
-        from_dir = os.path.join(settings.BASE_DIR, cfg['MYTHTV_CONTENT'].get('TV_RECORDINGS_DIR'))
+        from_dir = cfg['MYTHTV_CONTENT'].get('TV_RECORDINGS_DIR')
     if filename_pattern is None:
         filename_pattern = cfg['MYTHTV_CONTENT'].get('RECORDING_FILENAME_PATTERN')
     filespec = os.path.join(from_dir, filename_pattern)
@@ -109,54 +110,69 @@ def parse_myth_filename(filename):
 
     return [ local_dt, channel_id ]
 
-def make_video_sample(o):
+def make_video_samples(override=False):
     """
-    o is an Orphan instance. This method
-    generates a video sample from the
-    original recording file. The sample is
+    This method generates video samples from the
+    original recording files. The samples is
     not only much smaller than the original
-    (about 60 or 70 MB, compared to several GB)
+    (a hundred or so MB, compared to several GB)
     but is in a format that can be reliably viewed
     via HTML 5 in most recent browsers.
+    
+    If override is False (the default), the method
+    will not override preview files that already exist.
     
     ASSUMPTIONS:
         * The host is running Linux or a compatible OS. "Compatible" means, probably,
         Linux or a closely-related OS such as FreeBSD, with a POSIX or near-POSIX
         environment. The code may run successfully on other environments, such as
         a Windows computer with the Cygwin tools installed, but this has not been tested.
-        The reason that this is required is that the conversion is done using ffmpeg,
-        an external program.
+        The reason that this is required is that the conversion is done using avconv
+        or ffmpeg, an external program. The file mtv_settings.cfg contains the full
+        path for the ffmpeg or avconv executable.
         
     """
-    pass
+    # Read configuration...
+    config_file = os.path.join(settings.BASE_DIR, 'mtv_settings.cfg')
+    cfg = configparser.ConfigParser(interpolation=None)
+    config_files_read = cfg.read(config_file)
+    if len(config_files_read) == 0:
+        raise Exception('Could not find config file {}'.format(config_file))
+    
+    outdir = os.path.join(settings.BASE_DIR, cfg['MYTHTV_CONTENT'].get('VIDEO_SAMPLES_DIR'))
+    duration = cfg['MYTHTV_CONTENT'].get('PREVIEW_DURATION')
+    converter = cfg['MYTHTV_CONTENT'].get('VIDCONVERTER')
+    vidqual = cfg['MYTHTV_CONTENT'].get('PREVIEW_QUALITY')
 
-# class TVRecordingService(object):
-    """
-    Uses MythTV API calls to get a list of TV recordings for use
-    by Orphan-related code. For example, initialize_orphans_list
-    needs to check to see if a given filename on a given host
-    is in a MythTV tv recording or not.
-    
-    If it turns out that initialize_orphans_list is the only place
-    this is needed, then this will probably be turned into a simple
-    get_tv_recordings_list non-class function, as then there will
-    be no need to worry about "caching" the list by using a Singleton
-    class instance.
-    
-    Why not build a list once and save it using a Django ORM model,
-    as we do with Orphan? Because changes will be made by the
-    MythTV backend, and it will be hard to track those changes.
-    If it turns out there is a need for it in future, a Django
-    model could be used, linked to the MythTV backend's database,
-    but this will be more complicated, so we'll skip it for now.
-    """
-#     def __init__(self,hostname=None):
-#         if hostname is None:
-#             hostname = cfg['MYTHTV_CONTENT'].get('MYTHBACKEND')
-#         self.hostname = hostname
-#     
-#     def is_tv_recording(self, filename):
-#         pass
+    orphans = Orphan.objects.all()
+    zero_bytes = []
+    already_there = []
+    to_do = []
+    for o in orphans:
+        # don't bother with zero-length files...
+        if o.filesize == 0:
+            zero_bytes.append(os.path.join(o.directory, o.filename))
+            continue
+        infilespec = os.path.join(o.directory, o.filename)
+        outfile = os.path.splitext(o.filename)[0] + '.ogv'
+        outfilespec = os.path.join(outdir,outfile)
+        if os.path.isfile(outfilespec) and override == False:
+            already_there.append(outfilespec)
+            continue
+        cmd = [
+               converter,
+               '-ss', '00:00:00',
+               '-i', infilespec,
+               '-acodec','libvorbis',
+               '-vcodec', 'libtheora',
+               '-qscale:v', vidqual,
+               '-t', duration,
+               outfilespec
+               ]
+        to_do.append(cmd)
+        print("About to execute:")
+        print(cmd)
+        return(zero_bytes,already_there,to_do)
 
 
 class MythApi(object):
