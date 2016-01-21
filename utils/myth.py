@@ -144,34 +144,34 @@ def make_video_samples(override=False):
     converter = cfg['MYTHTV_CONTENT'].get('VIDCONVERTER')
     vidqual = cfg['MYTHTV_CONTENT'].get('PREVIEW_QUALITY')
 
-    orphans = Orphan.objects.all()
     zero_bytes = []
     already_there = []
     to_do = []
-    for o in orphans:
+    outdir = '/home/tony/devel/myth_to_vid/orphans/media/vidsamples'
+    for o in Orphan.objects.all():
         # don't bother with zero-length files...
         if o.filesize == 0:
-            zero_bytes.append(os.path.join(o.directory, o.filename))
-            continue
-        infilespec = os.path.join(o.directory, o.filename)
-        outfile = os.path.splitext(o.filename)[0] + '.ogv'
-        outfilespec = os.path.join(outdir,outfile)
-        if os.path.isfile(outfilespec) and override == False:
-            already_there.append(outfilespec)
-            continue
-        cmd = [
-               converter,
-               '-ss', '00:00:00',
-               '-i', infilespec,
-               '-acodec','libvorbis',
-               '-vcodec', 'libtheora',
-               '-qscale:v', vidqual,
-               '-t', duration,
-               outfilespec
-               ]
-        to_do.append(cmd)
-        print("About to execute:")
-        print(cmd)
+            zero_bytes.append(o)
+        else:
+            infilespec = os.path.join(o.directory, o.filename)
+            outfile = os.path.splitext(o.filename)[0] + '.ogv'
+            outfilespec = os.path.join(outdir,outfile)
+            if os.path.isfile(outfilespec) and override == False:
+                already_there.append(o)
+            else:
+                cmd = [
+                       converter,
+                       '-ss', '00:00:00',
+                       '-i', infilespec,
+                       '-acodec','libvorbis',
+                       '-vcodec', 'libtheora',
+                       '-qscale:v', vidqual,
+                       '-t', duration,
+                       outfilespec
+                       ]
+                to_do.append([o,cmd])
+                print("About to execute:")
+                print(cmd)
         return(zero_bytes,already_there,to_do)
 
 
