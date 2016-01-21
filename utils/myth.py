@@ -87,8 +87,8 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None, override=False
                 o.hostname = mythhost
                 ocounter += 1
                 o.save()
-                
-        print("Found {} total orphans.".format(ocounter))
+        
+        return ocounter        
             
     
 def parse_myth_filename(filename):
