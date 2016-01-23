@@ -153,7 +153,6 @@ def characterize_orphan(o, cfg, override):
     cmd = [
            converter,
            '-loglevel', '16', # print error messages to stderr, not general license and build info
-           '-y' if override else '-n', # -n means exit if destination file already exists.
            '-ss', '00:00:00', # point in source file from which to start
            '-i', infilespec, # input file
            '-acodec','libvorbis', # audio codec
@@ -162,6 +161,13 @@ def characterize_orphan(o, cfg, override):
            '-t', duration, # duration to extract, either in seconds, or in HH:MM:SS format
            outfilespec # destination file
            ]
+    # avconv and ffmpeg have slightly different syntax. '-n' is not valid for avconv.
+    if 'ffmpeg' in converter:
+        cmd.insert(1, '-y' if override else '-n'  ) # -n means exit if destination file already exists.
+    else:
+        if override:
+            cmd.insert(1, '-y')
+    
     return ['to_do', o, cmd ]
 
 
@@ -194,11 +200,13 @@ def make_video_samples(override=False):
     for i in range(0, num_to_do+1):
         print("Processing item {} of {}...".format(i+1,num_to_do))
         item = orphan_types['to_do'][i]
+        # item is [ orphan, cmd ]
         o = item[0]
         cmd = item[1]
         print("Executing converter for {}. This will take several minutes...".format(o.filename))
         res = make_video_sample(cmd)
         item.append(res)
+        # item is now [ orphan, cmd, returncode, errormessage (if any) ]
         if res[0] == 0:
             print("Item successfully converted.")
         else:

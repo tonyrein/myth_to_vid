@@ -22,10 +22,10 @@ print("Total of {} orphans were processed.".format(empty_count + todo_count + al
 print("Of these, {} were empty files (zero bytes) and {} already had samples present.".format(empty_count, already_there_count))
 print("I attempted to make video samples for the remaining {}.".format(todo_count))
 # success_stories = [ t for t in res['to_do'] if t[0] == 0 ]
-failures = [ t for t in res['to_do'] if t[0] != 0 ]
+failures = [ f for f in res['to_do'] if f[2] != 0 ]
 failure_count = len(failures)
 success_count = todo_count - failure_count
 print("{} attempts succeeded and {} encountered problems.".format(success_count, failure_count))
 print("Here are the error messages:")
 for f in failures:
-    print(f[1].decode('utf-8'))
+    print(f[3].decode('utf-8'))
