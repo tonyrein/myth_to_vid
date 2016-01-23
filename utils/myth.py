@@ -203,7 +203,7 @@ def make_video_samples(override=False):
         # item is [ orphan, cmd ]
         o = item[0]
         cmd = item[1]
-        print("Executing converter for {}. This will take several minutes...".format(o.filename))
+        print("\nExecuting converter for {}. This will take several minutes...".format(o.filename))
         res = make_video_sample(cmd)
         item.append(res)
         # item is now [ orphan, cmd, [ returncode, errormessage (if any) ] ]
