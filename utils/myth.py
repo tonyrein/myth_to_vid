@@ -140,13 +140,13 @@ def characterize_orphan(o, cfg, override):
     
     # don't bother with zero-byte files...
     if o.filesize == 0:
-        return ['empty', o]
+        return ['empty', o, None]
     
     infilespec = os.path.join(o.directory, o.filename)
     outfile = os.path.splitext(o.filename)[0] + '.ogv'
     outfilespec = os.path.join(outdir,outfile)
     if override == False and os.path.exists(outfilespec):
-        return ['already_there', o]
+        return ['already_there', o, None]
     # OK -- file with length > 0, and preview not already there
     # (or preview already there but override == True)
     # Construct a command list:
