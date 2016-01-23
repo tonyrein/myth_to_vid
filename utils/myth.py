@@ -181,8 +181,8 @@ def make_video_samples(override=False):
         c = characterize_orphan(o, cfg, override)
         # c is a list: [0] is the type of orphan (zero-bytes, preview already exists, or needs preview)
         # [1] is the Orphan object
-        # [2] is the constructed command list to be passed to subprocess
-        orphan_types[c[0]].append(c[1],c[2])
+        # [2] is the constructed command list to be passed to subprocess, if type is needs preview, otherwise None
+        orphan_types[c[0]].append([c[1],c[2]])
 #         if c[0] == 'to_do':
 #             todos.append(c[1],c[2])
 #         if c[0] == 'already_there':
