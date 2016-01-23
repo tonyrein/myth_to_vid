@@ -113,26 +113,17 @@ def parse_myth_filename(filename):
 
 def characterize_orphan(o, cfg, override):
     """
-    This method generates video samples from the
-    original recording files. The samples is
-    not only much smaller than the original
-    (a hundred or so MB, compared to several GB)
-    but is in a format that can be reliably viewed
-    via HTML 5 in most recent browsers.
+    Examines an Orphan instance and determines
+    whether or not a sample should be created for it.
+    No samples are needed for cases where:
+        * Orphan's filesize is 0
+        * A sample for that Orphan already exists.
+    For an Orphan which does need a sample,
+    a list of command parameters is prepared. The
+    name of the converter is obtained from mtv_settings.cfg.
     
-    If override is False (the default), the method
-    will not override preview files that already exist.
-    
-    ASSUMPTIONS:
-        * The host is running Linux or a compatible OS. "Compatible" means, probably,
-        Linux or a closely-related OS such as FreeBSD, with a POSIX or near-POSIX
-        environment. The code may run successfully on other environments, such as
-        a Windows computer with the Cygwin tools installed, but this has not been tested.
-        The reason that this is required is that the conversion is done using avconv
-        or ffmpeg, an external program. The file mtv_settings.cfg contains the full
-        path for the ffmpeg or avconv executable.
-        
     """
+
     outdir = os.path.join(settings.BASE_DIR, cfg['MYTHTV_CONTENT'].get('VIDEO_SAMPLES_DIR'))
     duration = cfg['MYTHTV_CONTENT'].get('PREVIEW_DURATION')
     converter = cfg['MYTHTV_CONTENT'].get('VIDCONVERTER')
@@ -172,6 +163,27 @@ def characterize_orphan(o, cfg, override):
 
 
 def make_video_samples(override=False):
+    """
+    This method generates video samples from the
+    original recording files. The samples is
+    not only much smaller than the original
+    (a hundred or so MB, compared to several GB)
+    but is in a format that can be reliably viewed
+    via HTML 5 in most recent browsers.
+    
+    If override is False (the default), the method
+    will not overwrite preview files that already exist.
+    
+    ASSUMPTIONS:
+        * The host is running Linux or a compatible OS. "Compatible" means, probably,
+        Linux or a closely-related OS such as FreeBSD, with a POSIX or near-POSIX
+        environment. The code may run successfully on other environments, such as
+        a Windows computer with the Cygwin tools installed, but this has not been tested.
+        The reason that this is required is that the conversion is done using avconv
+        or ffmpeg, an external program. The file mtv_settings.cfg contains the full
+        path for the ffmpeg or avconv executable.
+        
+    """
     # Read configuration...
     config_file = os.path.join(settings.BASE_DIR, 'mtv_settings.cfg')
     cfg = configparser.ConfigParser(interpolation=None)
@@ -180,21 +192,13 @@ def make_video_samples(override=False):
         raise Exception('Could not find config file {}'.format(config_file))
     
     orphan_types = { 'to_do': [], 'empty': [], 'already_there': [] }
-#     todos = []
-#     empties = []
-#     already_there = []
+
     for o in Orphan.objects.all():
         c = characterize_orphan(o, cfg, override)
         # c is a list: [0] is the type of orphan (zero-bytes, preview already exists, or needs preview)
         # [1] is the Orphan object
         # [2] is the constructed command list to be passed to subprocess, if type is needs preview, otherwise None
         orphan_types[c[0]].append([c[1],c[2]])
-#         if c[0] == 'to_do':
-#             todos.append(c[1],c[2])
-#         if c[0] == 'already_there':
-#             already_there.append(c[1],c[2])
-#         if c[0] == 'empty':
-#             empties.append(c[1],c[2])
             
     num_to_do = len(orphan_types['to_do'])
     for i in range(0, num_to_do+1):
