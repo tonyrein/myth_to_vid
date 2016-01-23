@@ -206,13 +206,13 @@ def make_video_samples(override=False):
         print("Executing converter for {}. This will take several minutes...".format(o.filename))
         res = make_video_sample(cmd)
         item.append(res)
-        # item is now [ orphan, cmd, returncode, errormessage (if any) ]
+        # item is now [ orphan, cmd, [ returncode, errormessage (if any) ] ]
         if res[0] == 0:
             print("Item successfully converted.")
         else:
             print("Error converting item.")
             print(res[1])
-        return orphan_types
+    return orphan_types
 
 
 def make_video_sample(cmd):
