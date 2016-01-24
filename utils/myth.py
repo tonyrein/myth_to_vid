@@ -213,19 +213,19 @@ def execute_video_sample_converter(to_do_list):
     num_to_do = len(to_do_list)
     retlist = []
     for i, item in enumerate(to_do_list, start=1):
-        print("Processing item {} of {}...".format(i,num_to_do))
+        print("\nProcessing item {} of {}...".format(i,num_to_do))
         # item is [ orphan, cmd ]
         o = item[0]
         cmd = item[1]
-        print("\nExecuting converter for {}. This will take several minutes...".format(o.filename))
         res = make_video_sample(cmd)
+        res.append(o.filename)
+        # res is [ returncode, error message (if any), filename ]
         retlist.append(res)
-        # item is now [ orphan, cmd, [ returncode, errormessage (if any) ] ]
-        if res[0] == 0:
-            print("Item successfully converted.")
-        else:
-            print("Error converting item.")
-            print(res[1])
+#         if res[0] == 0:
+#             print("Item successfully converted.")
+#         else:
+#             print("Error converting item.")
+#             print(res[1])
 
     return retlist
 
