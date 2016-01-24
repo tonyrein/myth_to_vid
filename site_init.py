@@ -19,7 +19,7 @@ if original_orphan_count > 0:
     print("\tDo you want to recreate the list? Doing so will wipe out")
     print("\tall data in the orphan table.")
     print("Type YES (all caps) to wipe out current data and recreate the list, or anything else to keep the current data.")
-    user_response = input('Wipe out current data? ')
+    user_response = input('Wipe out current data? --> ')
     if user_response == 'YES':
         init_orphan_list = True
 else:
