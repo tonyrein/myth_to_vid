@@ -123,23 +123,29 @@ def characterize_orphan(o, cfg, override):
     name of the converter is obtained from mtv_settings.cfg.
     
     """
+    # don't bother with zero-byte files...
+    if o.filesize == 0:
+        return ['empty', o, None]
 
-    outdir = os.path.join(settings.BASE_DIR, cfg['MYTHTV_CONTENT'].get('VIDEO_SAMPLES_DIR'))
+    # Check if preview file already exists...
+    if override == False:
+        outdir = os.path.join(settings.BASE_DIR, cfg['MYTHTV_CONTENT'].get('VIDEO_SAMPLES_DIR'))
+        outfilespec = os.path.join(outdir, o.samplename)
+        if os.path.exists(outfilespec):
+            return ['already_there', o, None]
+    
+    # OK -- file with length > 0, and preview not already there
+    # (or preview already there but override == True)    
     duration = cfg['MYTHTV_CONTENT'].get('PREVIEW_DURATION')
     converter = cfg['MYTHTV_CONTENT'].get('VIDCONVERTER')
     vidqual = cfg['MYTHTV_CONTENT'].get('PREVIEW_QUALITY')
     
-    # don't bother with zero-byte files...
-    if o.filesize == 0:
-        return ['empty', o, None]
     
     infilespec = os.path.join(o.directory, o.filename)
-    outfile = os.path.splitext(o.filename)[0] + '.ogv'
-    outfilespec = os.path.join(outdir,outfile)
-    if override == False and os.path.exists(outfilespec):
-        return ['already_there', o, None]
-    # OK -- file with length > 0, and preview not already there
-    # (or preview already there but override == True)
+#     outfile = os.path.splitext(o.filename)[0] + '.ogv'
+#     outfilespec = os.path.join(outdir,outfile)
+
+
     # Construct a command list:
     cmd = [
            converter,
@@ -161,8 +167,27 @@ def characterize_orphan(o, cfg, override):
     
     return ['to_do', o, cmd ]
 
+def characterize_orphans(override):
+    # Read configuration...
+    config_file = os.path.join(settings.BASE_DIR, 'mtv_settings.cfg')
+    cfg = configparser.ConfigParser(interpolation=None)
+    config_files_read = cfg.read(config_file)
+    if len(config_files_read) == 0:
+        raise Exception('Could not find config file {}'.format(config_file))
+    
+    orphan_types = { 'to_do': [], 'empty': [], 'already_there': [] }
 
-def make_video_samples(override=False):
+    for o in Orphan.objects.all():
+        c = characterize_orphan(o, cfg, override)
+        # c is a list: [0] is the type of orphan ('empty', 'already_there', or 'to_do')
+        # [1] is the Orphan object
+        # [2] is the constructed command list to be passed to subprocess, if type is needs preview, otherwise None
+        orphan_types[c[0]].append([c[1],c[2]])
+        
+    return orphan_types
+    
+
+def execute_video_sample_converter(to_do_list):
     """
     This method generates video samples from the
     original recording files. The samples is
@@ -184,38 +209,25 @@ def make_video_samples(override=False):
         path for the ffmpeg or avconv executable.
         
     """
-    # Read configuration...
-    config_file = os.path.join(settings.BASE_DIR, 'mtv_settings.cfg')
-    cfg = configparser.ConfigParser(interpolation=None)
-    config_files_read = cfg.read(config_file)
-    if len(config_files_read) == 0:
-        raise Exception('Could not find config file {}'.format(config_file))
-    
-    orphan_types = { 'to_do': [], 'empty': [], 'already_there': [] }
-
-    for o in Orphan.objects.all():
-        c = characterize_orphan(o, cfg, override)
-        # c is a list: [0] is the type of orphan (zero-bytes, preview already exists, or needs preview)
-        # [1] is the Orphan object
-        # [2] is the constructed command list to be passed to subprocess, if type is needs preview, otherwise None
-        orphan_types[c[0]].append([c[1],c[2]])
             
-    num_to_do = len(orphan_types['to_do'])
-    for i, item in enumerate(orphan_types['to_do'], start=1):
+    num_to_do = len(to_do_list)
+    retlist = []
+    for i, item in enumerate(to_do_list, start=1):
         print("Processing item {} of {}...".format(i,num_to_do))
         # item is [ orphan, cmd ]
         o = item[0]
         cmd = item[1]
         print("\nExecuting converter for {}. This will take several minutes...".format(o.filename))
         res = make_video_sample(cmd)
-        item.append(res)
+        retlist.append(res)
         # item is now [ orphan, cmd, [ returncode, errormessage (if any) ] ]
         if res[0] == 0:
             print("Item successfully converted.")
         else:
             print("Error converting item.")
             print(res[1])
-    return orphan_types
+
+    return retlist
 
 
 def make_video_sample(cmd):
@@ -228,6 +240,13 @@ def make_video_sample(cmd):
         return [0,res[0]]
     
 
+def make_video_samples(override=False):
+    orphan_types = characterize_orphans(override)
+    to_do_list = orphan_types['to_do']
+    conversion_results = execute_video_sample_converter(to_do_list)
+    return ( orphan_types, conversion_results )
+    
+    
 
 class MythApi(object):
     """
