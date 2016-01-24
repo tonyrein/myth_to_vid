@@ -201,9 +201,8 @@ def make_video_samples(override=False):
         orphan_types[c[0]].append([c[1],c[2]])
             
     num_to_do = len(orphan_types['to_do'])
-    for i in range(0, num_to_do+1):
-        print("Processing item {} of {}...".format(i+1,num_to_do))
-        item = orphan_types['to_do'][i]
+    for i, item in enumerate(orphan_types['to_do'], start=1):
+        print("Processing item {} of {}...".format(i,num_to_do))
         # item is [ orphan, cmd ]
         o = item[0]
         cmd = item[1]
