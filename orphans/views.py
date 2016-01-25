@@ -63,7 +63,7 @@ class OrphanDeleteView(DeleteView):
         print("Filename: {}".format(self.object.filename))
         print("Directory: {}".format(self.object.directory))
         print("Hostname: {}".format(socket.gethostname()))
-        print("Orphan's host name: {}".format(self.object.hostnam))
+        print("Orphan's host name: {}".format(self.object.hostname))
         filespec = os.path.join(self.object.directory,self.object.filename)
         os.remove(filespec)
         self.object.delete()
