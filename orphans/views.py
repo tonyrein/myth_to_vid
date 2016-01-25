@@ -57,11 +57,13 @@ class OrphanDeleteView(DeleteView):
     success_url = reverse_lazy('orphans:OrphanListView')
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if (self.object.filename != socket.gethostname()):
+        if self.object.hostname != socket.gethostname():
             raise Exception("This version of this method requires that it be running on the same host as the recording file is found on.")
         print("About to delete Orphan {}.".format(self.object.intid))
         print("Filename: {}".format(self.object.filename))
         print("Directory: {}".format(self.object.directory))
+        print("Hostname: {}".format(socket.gethostname()))
+        print("Orphan's host name: {}".format(self.object.hostnam))
         filespec = os.path.join(self.object.directory,self.object.filename)
         os.remove(filespec)
         self.object.delete()
