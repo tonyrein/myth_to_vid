@@ -281,7 +281,7 @@ class MythApi(object):
     
     """
     This is a property because initializing the list is expensive,
-    and this is a simple way to make the initialization "'1013_20140518210000.mpg'lazy."
+    and this is a simple way to make the initialization "lazy."
     """
     @property
     def tv_recordings(self):
