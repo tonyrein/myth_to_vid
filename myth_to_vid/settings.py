@@ -144,3 +144,5 @@ STATIC_URL = '/static/'
 MEDIA_ROOT=os.path.join(BASE_DIR,'media','')
 # Empty last arg to os.path.join() results in path ending in separator.
 MEDIA_URL='/media/'
+
+DATABASE_ROUTERS = ['myth_to_vid.dbrouters.Myth_To_Vid_Router']
