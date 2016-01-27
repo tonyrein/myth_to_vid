@@ -9,7 +9,7 @@
 	<p>Title: {{ object.title }}</p>
 	<p>Subtitle: {{ object.subtitle }}</p>
 	<br/>
-	<a class="btn btn-primary" href="{% url 'orphans:OrphanListView' %}">Back to List</a>
+	<a class="btn btn-primary" href="{{ request.session.LISTPAGE_URL }}">Back to List</a>
 
 
 {% endblock %}
