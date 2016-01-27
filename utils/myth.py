@@ -423,3 +423,28 @@ class MythApi(object):
         """
         m = [ p for p in self.tv_recordings if p['FileName'] == filename ]
         return len(m) > 0
+    
+    def add_to_mythvideo(self, filename, hostname=None):
+        if hostname is None:
+            hostname = self.server_name
+        res_dict = self._call_myth_api('Video', 'AddVideo',
+                 { 'FileName': filename, 'HostName': hostname} )
+        if 'Exception' in res_dict:
+            raise Exception("Problem adding MythVideo file {}: {}".format(filename, res_dict['Exception']) )
+        else:
+            return 'bool' in res_dict and res_dict['bool'] == 'true'
+        
+    def find_in_mythvideo(self, filename, hostname=None):
+        if hostname is None:
+            hostname = self.server_name
+        res_dict = self._call_myth_api('Video', 'GetVideoByFileName',
+                 { 'FileName': filename } )
+        if 'Exception' in res_dict:
+            if res_dict['Exception'].getcode() == 500:
+                # probably just no such file
+                return None
+            else:
+                raise Exception("Problem finding MythVideo file {}: {}".format(filename, res_dict['Exception']) )
+        else:
+            return res_dict['VideoMetadataInfo']
+
