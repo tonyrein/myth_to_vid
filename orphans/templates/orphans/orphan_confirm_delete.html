@@ -3,14 +3,12 @@
 	<title>Really Delete Orphan Number {{ object.intid }}?</title>
 {% endblock %}
 {% block content %}
-{{ request.session.LISTPAGE_URL }}
 <form method="post">
     {% csrf_token %}
     <h2>Are you sure you want to delete this Orphan?</h2>
     <p>(recorded on {{ object.channel_name }} on {{ object.start_date }} at {{ object.start_time }} )</p>
     <p>{{ object.title }} {{ object.subtitle }}</p>
     <input class="btn btn-primary" type="submit" value="Yes" />
-    <!-- <a class="btn btn-primary" href="{% url 'orphans:OrphanListView' %}">No</a> -->
     <a class="btn btn-primary" href="{{ request.session.LISTPAGE_URL }}">No</a>
 </form>
 
