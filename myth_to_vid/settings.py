@@ -98,8 +98,17 @@ DATABASES = {
     'default': {
         'ENGINE': cfg['DB'].get('DEFAULT_DB_ENGINE'),
         'NAME': os.path.join(BASE_DIR, cfg['DB'].get('DEFAULT_DB_NAME')),
-    }
+    },
+    'mythtv': {
+        'ENGINE': cfg['DB'].get('MYTH_DB_ENGINE'),
+        'NAME' : cfg['DB'].get('MYTH_DB_NAME'),
+        'HOST' : cfg['DB'].get('MYTH_DB_HOST'),
+        'USER' : cfg['DB'].get('MYTH_DB_USER'),
+        'PASSWORD': cfg['DB'].get('MYTH_DB_PASSWORD'),
+    },
 }
+
+
 
 
 # Password validation

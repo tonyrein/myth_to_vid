@@ -18,7 +18,7 @@ from django.db import models
 class MythVideo(models.Model):
     @classmethod
     def db_name(cls):
-        return 'mythconverg'
+        return 'mythtv'
     
     intid = models.AutoField(primary_key=True)
     title = models.CharField(max_length=128)

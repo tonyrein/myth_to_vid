@@ -29,12 +29,12 @@ class Myth_To_Vid_Router(object):
 
     def allow_migrate(self, db, app_label, model=None, **hints):
         """
-        Do not allow migrations for models using 'mythconverg' database.
+        Do not allow migrations for models using 'mythtv' database.
         For now this is hardcoded. If the project should grow to use more
         databases in the future, maybe this method could check a central
         store in a config file to find a list of databases or models for
         which migration should be blocked.
         """
-        if db == 'mythconverg':
+        if db == 'mythtv':
             return False
         return None
