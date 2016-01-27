@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'orphans',
     'utils',
+    'mythvideos',
     'bootstrap3',
     'django_tables2',
 ]
