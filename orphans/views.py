@@ -61,6 +61,9 @@ class OrphanDeleteView(DeleteView):
     """
     model = Orphan
     success_url = reverse_lazy('orphans:OrphanListView')
+    def get_success_url(self):
+        return self.request.session['LISTPAGE_URL']
+
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
         if self.object.hostname != socket.gethostname():
@@ -71,7 +74,8 @@ class OrphanDeleteView(DeleteView):
         print("Hostname: {}".format(socket.gethostname()))
         print("Orphan's host name: {}".format(self.object.hostname))
         filespec = os.path.join(self.object.directory,self.object.filename)
-        os.remove(filespec)
+        if os.path.isfile(filespec):
+            os.remove(filespec)
         self.object.delete()
         return HttpResponseRedirect(self.get_success_url())
         
