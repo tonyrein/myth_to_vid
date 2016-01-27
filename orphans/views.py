@@ -68,11 +68,6 @@ class OrphanDeleteView(DeleteView):
         self.object = self.get_object()
         if self.object.hostname != socket.gethostname():
             raise Exception("This version of this method requires that it be running on the same host as the recording file is found on.")
-        print("About to delete Orphan {}.".format(self.object.intid))
-        print("Filename: {}".format(self.object.filename))
-        print("Directory: {}".format(self.object.directory))
-        print("Hostname: {}".format(socket.gethostname()))
-        print("Orphan's host name: {}".format(self.object.hostname))
         filespec = os.path.join(self.object.directory,self.object.filename)
         if os.path.isfile(filespec):
             os.remove(filespec)
