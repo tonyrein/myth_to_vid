@@ -60,7 +60,7 @@ class OrphanDeleteView(DeleteView):
     Assumes that the file is on localhost.
     """
     model = Orphan
-    success_url = reverse_lazy('orphans:OrphanListView')
+#     success_url = reverse_lazy('orphans:OrphanListView')
     def get_success_url(self):
         return self.request.session['LISTPAGE_URL']
 
