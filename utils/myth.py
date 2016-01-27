@@ -276,6 +276,7 @@ class MythApi(object):
             MythApi.__instance.server_port = server_port
             MythApi.__instance._tv_recordings = None # Don't get this unless and until it's needed.
             MythApi.__instance._storage_groups = MythApi.__instance._fill_myth_storage_group_list()
+            MythApi.__instance.videos_directory = MythApi.__instance.storage_dir_for_name('Videos', server_name)
             MythApi.__instance.default_directory = MythApi.__instance.storage_dir_for_name('Default', server_name)
         return MythApi.__instance
     
