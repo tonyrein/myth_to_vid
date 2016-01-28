@@ -14,7 +14,7 @@ from utils.myth import initialize_orphans_list, VideoSampleMaker
 original_orphan_count = Orphan.objects.count()
 if original_orphan_count > 0:
     init_orphan_list = False
-    print("There are already {} orphan records in the database.")
+    print("There are already {} orphan records in the database.".format(original_orphan_count))
     print("\tDo you want to recreate the list? Doing so will wipe out")
     print("\tall data in the orphan table.")
     print("Type YES (all caps) to wipe out current data and recreate the list, or anything else to keep the current data.")
