@@ -56,11 +56,24 @@ class MythVideoService(object):
         # Step 2: Copy file
         shutil.copy2(source_filespec, target_directory, follow_symlinks=True)
         # Step 3: Call MythTV API to add video
-        res = api.add_to_mythvideo(os.path.join(target_subdir, orphan.filename), target_host)
-        if not res: # api call returns False if problem
+        target_filepath = os.path.join(target_subdir, orphan.filename)
+        if not api.add_to_mythvideo(target_filepath, target_host)
+			# api call returns False if problem
             raise Exception("Could not add video with filename {} and title {}".format(orphan.filename,orphan.title))
         # Step 4: Get a MythVideo instance for the new entry
-        vidlist = MythVideo.objects.filter()
+        # This call should return only 1 instance...
+        newvid = MythVideo.objects.filter(hostname=target_host).filter(filename=target_filepath).get()
+        # Step 5: Set metadata and save
+        newvid.title = orphan.title
+        newvid.subtitle = orphan.subtitle
+        newvid.year = orphan.start_date.year
+        newvid.length = orphan.duration
+        newvid.save()
+        # Step 6: Delete original file, if desired
+        if delete_orphan:
+			os.remove(source_filespec)
+			orphan.delete()
+        
         
         
         
