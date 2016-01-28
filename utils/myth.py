@@ -221,11 +221,6 @@ def execute_video_sample_converter(to_do_list):
         res.append(o.filename)
         # res is [ returncode, error message (if any), filename ]
         retlist.append(res)
-#         if res[0] == 0:
-#             print("Item successfully converted.")
-#         else:
-#             print("Error converting item.")
-#             print(res[1])
 
     return retlist
 
@@ -383,12 +378,11 @@ class MythApi(object):
     """
     Queries the MythAPI server for a list of the tv recordings.
     Pass: nothing
-    Return: a list, each element of which is an ordereddict with the following keys:
+    Return: a list, each element of which is a JSON object with the following keys:
        StartTime, EndTime, Title, SubTitle, Category, CatType, Repeat, VideoProps,
        AudioProps, SubProps, SeriesId, ProgramId, Stars, FileSize, LastModified, ProgramFlags,
        FileName, HostName, Airdate, Description, Inetref, Season, Episode, Channel,
        Recording, Artwork,
-       FileSpec, Duration
        Note that the values for several of these keys (Channel, Recording, Artwork) are
        ordereddicts in turn.
        For Channel, the keys are:
