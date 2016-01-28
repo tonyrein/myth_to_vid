@@ -111,136 +111,148 @@ def parse_myth_filename(filename):
 
     return [ local_dt, channel_id ]
 
-def characterize_orphan(o, cfg, override):
-    """
-    Examines an Orphan instance and determines
-    whether or not a sample should be created for it.
-    No samples are needed for cases where:
-        * Orphan's filesize is 0
-        * A sample for that Orphan already exists.
-    For an Orphan which does need a sample,
-    a list of command parameters is prepared. The
-    name of the converter is obtained from mtv_settings.cfg.
-    
-    """
-    # don't bother with zero-byte files...
-    if o.filesize == 0:
-        return ['empty', o, None]
-
-    # Check if preview file already exists...
-    if override == False:
-        outdir = os.path.join(settings.BASE_DIR, cfg['MYTHTV_CONTENT'].get('VIDEO_SAMPLES_DIR'))
-        outfilespec = os.path.join(outdir, o.samplename)
-        if os.path.exists(outfilespec):
-            return ['already_there', o, None]
-    
-    # OK -- file with length > 0, and preview not already there
-    # (or preview already there but override == True)    
-    duration = cfg['MYTHTV_CONTENT'].get('PREVIEW_DURATION')
-    converter = cfg['MYTHTV_CONTENT'].get('VIDCONVERTER')
-    vidqual = cfg['MYTHTV_CONTENT'].get('PREVIEW_QUALITY')
-    
-    
-    infilespec = os.path.join(o.directory, o.filename)
-#     outfile = os.path.splitext(o.filename)[0] + '.ogv'
-#     outfilespec = os.path.join(outdir,outfile)
 
 
-    # Construct a command list:
-    cmd = [
-           converter,
-           '-loglevel', '16', # print error messages to stderr, not general license and build info
-           '-ss', '00:00:00', # point in source file from which to start
-           '-i', infilespec, # input file
-           '-acodec','libvorbis', # audio codec
-           '-vcodec', 'libtheora', # video codec
-           '-qscale:v', vidqual, # video quality to use
-           '-t', duration, # duration to extract, either in seconds, or in HH:MM:SS format
-           outfilespec # destination file
-           ]
-    # avconv and ffmpeg have slightly different syntax. '-n' is not valid for avconv.
-    if 'ffmpeg' in converter:
-        cmd.insert(1, '-y' if override else '-n'  ) # -n means exit if destination file already exists.
-    else:
-        if override:
-            cmd.insert(1, '-y')
-    
-    return ['to_do', o, cmd ]
-
-def characterize_orphans(override):
-    # Read configuration...
-    config_file = os.path.join(settings.BASE_DIR, 'mtv_settings.cfg')
-    cfg = configparser.ConfigParser(interpolation=None)
-    config_files_read = cfg.read(config_file)
-    if len(config_files_read) == 0:
-        raise Exception('Could not find config file {}'.format(config_file))
-    
-    orphan_types = { 'to_do': [], 'empty': [], 'already_there': [] }
-
-    for o in Orphan.objects.all():
-        c = characterize_orphan(o, cfg, override)
-        # c is a list: [0] is the type of orphan ('empty', 'already_there', or 'to_do')
-        # [1] is the Orphan object
-        # [2] is the constructed command list to be passed to subprocess, if type is needs preview, otherwise None
-        orphan_types[c[0]].append([c[1],c[2]])
+class VideoSampleMaker(object):
+    def __init__(self, override=False):
+        self.override = override
+                # Read configuration...
+        config_file = os.path.join(settings.BASE_DIR, 'mtv_settings.cfg')
+        self.cfg = configparser.ConfigParser(interpolation=None)
+        config_files_read = self.cfg.read(config_file)
+        if len(config_files_read) == 0:
+            raise Exception('Could not find config file {}'.format(config_file))
+        self.characterize_orphans()
+        self.empty_count = len(self.orphan_types['empty'])
+        self.already_there_count = len(self.orphan_types['already_there'])
+        self.to_do_count = len(self.orphan_types['to_do'])
         
-    return orphan_types
-    
-
-def execute_video_sample_converter(to_do_list):
-    """
-    This method generates video samples from the
-    original recording files. The samples is
-    not only much smaller than the original
-    (a hundred or so MB, compared to several GB)
-    but is in a format that can be reliably viewed
-    via HTML 5 in most recent browsers.
-    
-    If override is False (the default), the method
-    will not overwrite preview files that already exist.
-    
-    ASSUMPTIONS:
-        * The host is running Linux or a compatible OS. "Compatible" means, probably,
-        Linux or a closely-related OS such as FreeBSD, with a POSIX or near-POSIX
-        environment. The code may run successfully on other environments, such as
-        a Windows computer with the Cygwin tools installed, but this has not been tested.
-        The reason that this is required is that the conversion is done using avconv
-        or ffmpeg, an external program. The file mtv_settings.cfg contains the full
-        path for the ffmpeg or avconv executable.
+    def characterize_orphan(self, o):
+        """
+        Examines an Orphan instance and determines
+        whether or not a sample should be created for it.
+        No samples are needed for cases where:
+            * Orphan's filesize is 0
+            * A sample for that Orphan already exists.
+        For an Orphan which does need a sample,
+        a list of command parameters is prepared. The
+        name of the converter is obtained from mtv_settings.cfg.
         
-    """
+        """
+        # don't bother with zero-byte files...
+        if o.filesize == 0:
+            return ['empty', o, None]
+    
+        # Check if preview file already exists...
+        if self.override == False:
+            outdir = os.path.join(settings.BASE_DIR, self.cfg['MYTHTV_CONTENT'].get('VIDEO_SAMPLES_DIR'))
+            outfilespec = os.path.join(outdir, o.samplename)
+            if os.path.exists(outfilespec):
+                return ['already_there', o, None]
+        
+        # OK -- file with length > 0, and preview not already there
+        # (or preview already there but override == True)    
+        duration = self.cfg['MYTHTV_CONTENT'].get('PREVIEW_DURATION')
+        converter = self.cfg['MYTHTV_CONTENT'].get('VIDCONVERTER')
+        vidqual = self.cfg['MYTHTV_CONTENT'].get('PREVIEW_QUALITY')
+        infilespec = os.path.join(o.directory, o.filename)
+        # Construct a command list:
+        cmd = [
+               converter,
+               '-loglevel', '16', # print error messages to stderr, not general license and build info
+               '-ss', '00:00:00', # point in source file from which to start
+               '-i', infilespec, # input file
+               '-acodec','libvorbis', # audio codec
+               '-vcodec', 'libtheora', # video codec
+               '-qscale:v', vidqual, # video quality to use
+               '-t', duration, # duration to extract, either in seconds, or in HH:MM:SS format
+               outfilespec # destination file
+               ]
+        # avconv and ffmpeg have slightly different syntax. '-n' is not valid for avconv.
+        if 'ffmpeg' in converter:
+            cmd.insert(1, '-y' if self.override else '-n'  ) # -n means exit if destination file already exists.
+        else:
+            if self.override:
+                cmd.insert(1, '-y')
+        
+        return ['to_do', o, cmd ]
+    
+    def characterize_orphans(self):
+        """
+        Examines each Orphan instance and determines whether a sample needs to be
+        created for it. Sample creation is not needed for Orphans with zero-length
+        files and Orphans that already have a sample.
+        """
+        self.orphan_types = { 'to_do': [], 'empty': [], 'already_there': [] }
+    
+        for o in Orphan.objects.all():
+            c = self.characterize_orphan(o)
+            # c is a list: [0] is the type of orphan ('empty', 'already_there', or 'to_do')
+            # [1] is the Orphan object
+            # [2] is the constructed command list to be passed to subprocess, if type is needs preview, otherwise None
+            self.orphan_types[c[0]].append([c[1],c[2]])
+    
+    def make_video_samples(self):
+        """
+        This method generates video samples from the
+        original recording files. The samples are
+        not only much smaller than the original
+        (a hundred or so MB, compared to several GB)
+        but is in a format that can be reliably viewed
+        via HTML 5 in most recent browsers.
+        
+        If override is False (the default), the method
+        will not overwrite preview files that already exist.
+        
+        ASSUMPTIONS:
+            * The host is running Linux or a compatible OS. "Compatible" means, probably,
+            Linux or a closely-related OS such as FreeBSD, with a POSIX or near-POSIX
+            environment. The code may run successfully on other environments, such as
+            a Windows computer with the Cygwin tools installed, but this has not been tested.
+            The reason that this is required is that the conversion is done using avconv
+            or ffmpeg, an external program. The file mtv_settings.cfg contains the full
+            path for the ffmpeg or avconv executable.
             
-    num_to_do = len(to_do_list)
-    retlist = []
-    for i, item in enumerate(to_do_list, start=1):
-        print("\nProcessing item {} of {}...".format(i,num_to_do))
-        # item is [ orphan, cmd ]
-        o = item[0]
-        cmd = item[1]
-        res = make_video_sample(cmd)
-        res.append(o.filename)
-        # res is [ returncode, error message (if any), filename ]
-        retlist.append(res)
-
-    return retlist
-
-
-def make_video_sample(cmd):
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    res = proc.communicate()
-    # res[0] is stdout, res[1] is stderr
-    if proc.returncode != 0:
-        return [proc.returncode,res[1]]
-    else:
-        return [0,res[0]]
+        """
+        to_do_list = self.orphan_types['to_do']
+        retlist = []
+        for i, item in enumerate(to_do_list, start=1):
+            print("\nProcessing item {} of {}...".format(i,self.to_do_count))
+            # item is [ orphan, cmd ]
+            o = item[0]
+            cmd = item[1]
+            res = self.make_video_sample(cmd)
+            res.append(o.filename)
+            # res is [ returncode, error message (if any), filename ]
+            retlist.append(res)#         if res[0] == 0:
     
-
-def make_video_samples(override=False):
-    orphan_types = characterize_orphans(override)
-    to_do_list = orphan_types['to_do']
-    conversion_results = execute_video_sample_converter(to_do_list)
-    return ( orphan_types, conversion_results )
+        return retlist
     
+    def make_video_sample(self, cmd):
+        """
+        Processes the cmd list for a single file
+        Pass:
+          * command list generated by characterize_orphan
+        Return:
+          On success, returns a list consisting of [ 0 (to signal success), stdout from subprocess ]
+          On failure, returns a list consisting of [ subprocess return code, stderr from subprocess ]
+          
+        """
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        res = proc.communicate()
+        # res[0] is stdout, res[1] is stderr
+        if proc.returncode != 0:
+            return [proc.returncode,res[1]]
+        else:
+            return [0,res[0]]
+        
+#     
+#     def make_video_samples(override=False):
+#         orphan_types = characterize_orphans(override)
+#         to_do_list = orphan_types['to_do']
+#         conversion_results = execute_video_sample_converter(to_do_list)
+#         return ( orphan_types, conversion_results )
+#     
     
 
 class MythApi(object):

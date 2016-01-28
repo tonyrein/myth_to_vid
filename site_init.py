@@ -1,4 +1,3 @@
-import sys
 import os
 os.environ['DJANGO_SETTINGS_MODULE'] = 'myth_to_vid.settings'
 
@@ -7,7 +6,7 @@ application = get_wsgi_application()
 
 
 from orphans.models import Orphan
-from utils.myth import initialize_orphans_list, characterize_orphans, execute_video_sample_converter
+from utils.myth import initialize_orphans_list, VideoSampleMaker
 
 
 # Are there any orphans already?
@@ -35,23 +34,17 @@ else:
 if num_orphans > 0:
     print("There are {} records in the orphans database table.".format(num_orphans))
     print("\tChecking whether any of them need video previews made...")
-    orphan_types = characterize_orphans(override=False)
-    #   orphan_types is a dict, with each key pointing to a list: { 'to_do': [], 'empty': [], 'already_there': [] }
-    #        Each element in those lists is [ type ('empty', 'already_there', or 'to_do'), Orphan object, cmd (for type 'to_do') ] 
-    
-    empty_count = len(orphan_types['empty'])
-    todo_count = len(orphan_types['to_do'])
-    already_there_count = len(orphan_types['already_there'])
-    print("\nA total of {} orphans were checked.".format(empty_count + todo_count + already_there_count))
-    print("Of these, {} were empty files (zero bytes) and {} already had samples present.".format(empty_count, already_there_count))
-    if todo_count > 0:
-        print("I will attempt to make video samples for the remaining {}...".format(todo_count))
+    vm = VideoSampleMaker()
+    print("\nA total of {} orphans were checked.".format(vm.empty_count + vm.to_do_count + vm.already_there_count))
+    print("Of these, {} were empty files (zero bytes) and {} already had samples present.".format(vm.empty_count, vm.already_there_count))
+    if vm.to_do_count > 0:
+        print("I will attempt to make video samples for the remaining {}...".format(vm.to_do_count))
         print("\tThis will take several minutes per file...")
-        conversion_results = execute_video_sample_converter(orphan_types['to_do'])
+        conversion_results = vm.make_video_samples()
         # Each element of conversion_results is [ returncode, error message (if any), filename ]
         failures = [ f for f in conversion_results if f[0] != 0 ]
         failure_count = len(failures)
-        success_count = todo_count - failure_count
+        success_count = vm.to_do_count - failure_count
         print("{} attempts succeeded and {} encountered problems.".format(success_count, failure_count))
         if failure_count > 0:
             print("Here are the error messages:")
@@ -60,6 +53,5 @@ if num_orphans > 0:
     else:
         print("There were no orphan records which needed samples made.")
         
-
 else: # num_orphans not > 0
     print("No orphan records to process -- exiting.")
