@@ -33,3 +33,17 @@ From http://stackoverflow.com/questions/4563272/how-to-convert-a-python-utc-date
 """
 def utc_dt_to_local_dt(utc_dt):
     return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
+
+"""
+Given two time/date strings in the format 2015-11-22 18:00:03,
+figure out the number of seconds between them.
+
+Pass:
+  * Two iso-format time/date strings. We assume that both are UTC.
+Return:
+  * Difference between them, in seconds (int)
+"""
+def time_diff_from_strings(start_time, end_time):
+    end_dt = iso8601.parse_date(end_time, pytz.timezone('Etc/UTC'))
+    start_dt = iso8601.parse_date(start_time, pytz.timezone('Etc/UTC'))
+    return (int)(end_dt.timestamp() - start_dt.timestamp())
