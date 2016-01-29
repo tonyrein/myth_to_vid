@@ -42,6 +42,10 @@ class OrphanUpdateView(UpdateView):
     model = Orphan
     readonly_fields = [ 'start_date','start_time','channel_number','channel_name','duration','filesize','samplename'  ]
     fields = [ 'title','subtitle']
+    
+    def get_success_url(self):
+        return self.request.session['LISTPAGE_URL']
+    
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(OrphanUpdateView, self).get_context_data(**kwargs)
