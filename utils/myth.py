@@ -2,8 +2,10 @@
 import configparser
 import datetime
 from glob import glob
+import iso8601
 import json
 import os.path
+import pytz
 import re
 import subprocess
 from socket import gethostname
@@ -74,7 +76,7 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None, override=False
             orphandir,fn = os.path.split(f) # split into path and filename
             if not api.is_tv_recording(fn):
                 o = Orphan()
-                local_dt, utc_dt, channel_id = parse_myth_filename(fn) # utc_dt isn't used
+                local_dt, channel_id = parse_myth_filename(fn) 
                 o.start_date = local_dt.date()
                 o.start_time = local_dt.time()
                 ci = api.get_channel_info(channel_id)
@@ -96,10 +98,27 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None, override=False
 def init_tvrecordings_list():
     api = MythApi()
     rawlist = api.tv_recordings
-    for counter, rawdata in enumerate(rawlist, start=1):
+    for rawdata in rawlist:
         r = TvRecording()
-        local_dt, utc_dt, channel_id = parse_myth_filename(rawdata['FileName'])
-                    
+        r.filename = rawdata['FileName']
+        r.filesize = rawdata['FileSize']
+        r.hostname = rawdata['HostName']
+        storage_group = rawdata['Recording']['StorageGroup']
+        r.directory = api.storage_dir_for_name(storage_group, r.hostname)
+        start_utc_string = rawdata['Recording']['StartTs']
+        end_utc_string = rawdata['Recording']['EndTs']
+        r.start_utc_datetime = iso8601.parse_date(start_utc_string, pytz.timezone('Etc/UTC'))
+        end_utc_datetime = iso8601.parse_date(end_utc_string, pytz.timezone('Etc/UTC'))
+        timediff = (end_utc_datetime - r.start_utc_datetime)
+        r.duration = round((timediff.seconds)/60)
+        r.start_local_datetime = utc_dt_to_local_dt(r.start_utc_datetime)
+        r.channel_id = rawdata['Channel']['ChanId']
+        r.channel_name = rawdata['Channel']['ChannelName']
+        r.channel_number = rawdata['Channel']['ChanNum']
+        r.title = rawdata['Title']
+        r.subtitle = rawdata['SubTitle']
+        r.save()
+    return len(rawlist)            
     
 def parse_myth_filename(filename):
     # Verify filename fits pattern - "\d{4}_\d{14}\."
@@ -117,7 +136,7 @@ def parse_myth_filename(filename):
     utc_dt = ensure_utc(utc_dt)
     local_dt = utc_dt_to_local_dt(utc_dt)
 
-    return [ local_dt, utc_dt, channel_id ]
+    return [ local_dt, channel_id ]
 
 
 
@@ -173,7 +192,7 @@ class VideoSampleMaker(object):
                '-acodec','libvorbis', # audio codec
                '-vcodec', 'libtheora', # video codec
                '-qscale:v', vidqual, # video quality to use
-               '-t', duration, # duration to extract, either in seconds, or in HH:MM:SS format
+               '-t', duration, # duration to extract, eitstart_utc_stringher in seconds, or in HH:MM:SS format
                outfilespec # destination file
                ]
         # avconv and ffmpeg have slightly different syntax. '-n' is not valid for avconv.
