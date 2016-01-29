@@ -14,6 +14,7 @@ import urllib.request
 from utils.date_and_time import ensure_tz_aware, ensure_utc, utc_dt_to_local_dt
 from orphans.models import Orphan
 from django.conf import settings
+from tvrecordings.models import TvRecording
 
 mythtv_filename_pattern = re.compile('\d{4}_\d{14}\.')
 REC_FILENAME_DATE_FORMAT = '%Y%m%d%H%M%S'
@@ -73,7 +74,7 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None, override=False
             orphandir,fn = os.path.split(f) # split into path and filename
             if not api.is_tv_recording(fn):
                 o = Orphan()
-                local_dt, channel_id = parse_myth_filename(fn)
+                local_dt, utc_dt, channel_id = parse_myth_filename(fn) # utc_dt isn't used
                 o.start_date = local_dt.date()
                 o.start_time = local_dt.time()
                 ci = api.get_channel_info(channel_id)
@@ -91,7 +92,14 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None, override=False
                 o.save()
         
         return ocounter        
-            
+
+def init_tvrecordings_list():
+    api = MythApi()
+    rawlist = api.tv_recordings
+    for counter, rawdata in enumerate(rawlist, start=1):
+        r = TvRecording()
+        local_dt, utc_dt, channel_id = parse_myth_filename(rawdata['FileName'])
+                    
     
 def parse_myth_filename(filename):
     # Verify filename fits pattern - "\d{4}_\d{14}\."
@@ -109,7 +117,7 @@ def parse_myth_filename(filename):
     utc_dt = ensure_utc(utc_dt)
     local_dt = utc_dt_to_local_dt(utc_dt)
 
-    return [ local_dt, channel_id ]
+    return [ local_dt, utc_dt, channel_id ]
 
 
 
