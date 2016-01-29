@@ -2,7 +2,6 @@ import os
 import os.path
 import socket
 
-from django.core.urlresolvers import reverse_lazy
 from django.http.response import HttpResponseRedirect
 from django.template import defaultfilters
 from django.views.generic import DeleteView, DetailView, UpdateView 
