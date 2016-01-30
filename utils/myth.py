@@ -96,8 +96,23 @@ def initialize_orphans_list(from_dir=None, filename_pattern=None, override=False
         return ocounter        
 
 def init_tvrecordings_list():
+    """
+    Query MythTV backend server for list of TV programs. Save
+    an tvrecordings.models.TvRecording object for each program.
+    Pass:
+        Nothing
+    Return:
+        Count of programs
+    """
+    # Clear old records in our internal table (NOT MythTV's records):
+    TvRecording.objects.all().delete()
+    
+    # Get a list of TV recordings from the MythTV backend via its api
     api = MythApi()
     rawlist = api.tv_recordings
+    
+    # For each list item, construct a TvRecording object and
+    # add it to our internal database
     for rawdata in rawlist:
         r = TvRecording()
         r.filename = rawdata['FileName']
@@ -107,11 +122,16 @@ def init_tvrecordings_list():
         r.directory = api.storage_dir_for_name(storage_group, r.hostname)
         start_utc_string = rawdata['Recording']['StartTs']
         end_utc_string = rawdata['Recording']['EndTs']
+    
+        # Construct datetime objects from strings in rawdata - use them to
+        # figure difference between start and end, and round to nearest minute.
         r.start_utc_datetime = iso8601.parse_date(start_utc_string, pytz.timezone('Etc/UTC'))
         end_utc_datetime = iso8601.parse_date(end_utc_string, pytz.timezone('Etc/UTC'))
         timediff = (end_utc_datetime - r.start_utc_datetime)
         r.duration = round((timediff.seconds)/60)
         r.start_local_datetime = utc_dt_to_local_dt(r.start_utc_datetime)
+        
+        # Rest of fields of interest...
         r.channel_id = rawdata['Channel']['ChanId']
         r.channel_name = rawdata['Channel']['ChannelName']
         r.channel_number = rawdata['Channel']['ChanNum']
