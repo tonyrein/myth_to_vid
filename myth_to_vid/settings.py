@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'orphans',
     'utils',
     'mythvideos',
+    'tvrecordings',
     'bootstrap3',
     'django_tables2',
 ]

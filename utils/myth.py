@@ -120,16 +120,15 @@ def init_tvrecordings_list():
         r.hostname = rawdata['HostName']
         storage_group = rawdata['Recording']['StorageGroup']
         r.directory = api.storage_dir_for_name(storage_group, r.hostname)
-        start_utc_string = rawdata['Recording']['StartTs']
-        end_utc_string = rawdata['Recording']['EndTs']
     
         # Construct datetime objects from strings in rawdata - use them to
         # figure difference between start and end, and round to nearest minute.
+        start_utc_string = rawdata['Recording']['StartTs']
+        end_utc_string = rawdata['Recording']['EndTs']
         r.start_utc_datetime = iso8601.parse_date(start_utc_string, pytz.timezone('Etc/UTC'))
         end_utc_datetime = iso8601.parse_date(end_utc_string, pytz.timezone('Etc/UTC'))
         timediff = (end_utc_datetime - r.start_utc_datetime)
         r.duration = round((timediff.seconds)/60)
-        r.start_local_datetime = utc_dt_to_local_dt(r.start_utc_datetime)
         
         # Rest of fields of interest...
         r.channel_id = rawdata['Channel']['ChanId']
