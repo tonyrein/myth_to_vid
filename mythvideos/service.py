@@ -57,7 +57,7 @@ class MythVideoService(object):
         shutil.copy2(source_filespec, target_directory, follow_symlinks=True)
         # Step 3: Call MythTV API to add video
         target_filepath = os.path.join(target_subdir, orphan.filename)
-        if not api.add_to_mythvideo(target_filepath, target_host)
+        if not api.add_to_mythvideo(target_filepath, target_host):
 			# api call returns False if problem
             raise Exception("Could not add video with filename {} and title {}".format(orphan.filename,orphan.title))
         # Step 4: Get a MythVideo instance for the new entry
