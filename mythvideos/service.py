@@ -62,6 +62,7 @@ class MythVideoService(object):
         Returns:
             MythVideo object, or None if there was a failure adding the file.
         """
+        print(data)
         filespec = data.get('filespec', None)
         if filespec is None or filespec == '':
             raise ValueError("You must supply the filename of the video to activate.")
@@ -75,9 +76,11 @@ class MythVideoService(object):
                 v.title = data.get('title', None)
                 if not v.title:
                     v.title = os.path.splitext(v.filename)[0].replace('_',' ').replace(os.sep,": ")
+                print("Title: {}".format(v.title))
                 v.subtitle = data.get('subtitle', None)
                 if not v.subtitle:
                     v.subtitle = os.path.splitext(v.filename)[0].replace('_',' ').replace(os.sep,": ")
+                print("SubTitle: {}".format(v.subtitle))
                 v.length = int(data.get('length', 0))
                 ct = data.get('contenttype', None)
                 if ct:
@@ -87,6 +90,7 @@ class MythVideoService(object):
                     v.releasedate = iso8601.parse_date(datestring)
                 else:
                     v.releasedate = datetime.datetime(1970,1,1)
+                print(v.releasedate)
                 v.year = v.releasedate.year
                 v.save()
         else: # could not add file or retrieve video
@@ -140,6 +144,7 @@ class MythVideoService(object):
         if delete_orphan and v is not None:
             os.remove(source_filespec)
             orphan.delete()
+        return v
         
         
         
