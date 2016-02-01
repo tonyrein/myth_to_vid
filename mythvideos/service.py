@@ -20,14 +20,7 @@ types of entities.
 """
 class MythVideoService(object):
     def __init__(self):
-#         # Read configuration...
-#         config_file = os.path.join(settings.BASE_DIR, 'mtv_settings.cfg')
-#         self.cfg = configparser.ConfigParser(interpolation=None)
-#         config_files_read = self.cfg.read(config_file)
-#         if len(config_files_read) == 0:
-#             raise Exception('Could not find config file {}'.format(config_file))
         self.api = MythApi()
-    
     
     def activate_video(self, data={}):
         """
@@ -68,33 +61,37 @@ class MythVideoService(object):
             raise ValueError("You must supply the filename of the video to activate.")
         # If no hostname supplied, use default from api...
         hostname = data.get('hostname', self.api.server_name)
+        # Is this video already in the collection?
+        VL = MythVideo.objects.filter(filename=filespec) # returns a list
+        if len(VL) > 0: # The list has at least one member
+            v = VL[0]
+        else: # Not already there -- add it
         # Use MythTV API call to tell MythTV server to add a record to its db for this file...
-        res = self.api.add_to_mythvideo(filespec, hostname) # returns True on success
-        if res: # If API call succeeds, fetch this new db row and fill in rest of metadata...
-            v = MythVideo.objects.filter(filename=filespec,host=hostname).get()
-            if v:
-                v.title = data.get('title', None)
-                if not v.title:
-                    v.title = os.path.splitext(v.filename)[0].replace('_',' ').replace(os.sep,": ")
-                print("Title: {}".format(v.title))
-                v.subtitle = data.get('subtitle', None)
-                if not v.subtitle:
-                    v.subtitle = os.path.splitext(v.filename)[0].replace('_',' ').replace(os.sep,": ")
-                print("SubTitle: {}".format(v.subtitle))
-                v.length = int(data.get('length', 0))
-                ct = data.get('contenttype', None)
-                if ct:
-                    v.contenttype = ct
-                datestring = data.get('releasedate', None)
-                if datestring:
-                    v.releasedate = iso8601.parse_date(datestring)
-                else:
-                    v.releasedate = datetime.datetime(1970,1,1)
-                print(v.releasedate)
-                v.year = v.releasedate.year
-                v.save()
-        else: # could not add file or retrieve video
-            v = None
+            res = self.api.add_to_mythvideo(filespec, hostname) # returns True on success
+            if not res:
+                raise Exception("Could not add video {}".format(filespec))
+            v = MythVideo.objects.filter(filename=filespec).get() # This will throw an exception if still not there
+        # Now that we have our MythVideo object, fill in its fields...
+        v.title = data.get('title', None)
+        if not v.title:
+            v.title = os.path.splitext(v.filename)[0].replace('_',' ').replace(os.sep,": ")
+        print("Title: {}".format(v.title))
+        v.subtitle = data.get('subtitle', None)
+        if not v.subtitle:
+            v.subtitle = os.path.splitext(v.filename)[0].replace('_',' ').replace(os.sep,": ")
+        print("SubTitle: {}".format(v.subtitle))
+        v.length = int(data.get('length', 0))
+        ct = data.get('contenttype', None)
+        if ct:
+            v.contenttype = ct
+        datestring = data.get('releasedate', None)
+        if datestring:
+            v.releasedate = iso8601.parse_date(datestring)
+        else:
+            v.releasedate = datetime.datetime(1970,1,1)
+        print(v.releasedate)
+        v.year = v.releasedate.year
+        v.save()
         return v
                 
 
@@ -136,7 +133,7 @@ class MythVideoService(object):
                 'hostname': target_host,
                 'title': orphan.title,
                 'subtitle': orphan.subtitle,
-                'releasedate': orphan.start_date.isoformat() + 'Z',
+                'releasedate': orphan.start_date.isoformat(),
                 'length': orphan.duration, # this value is an integer, in minutes
                 }
         v = self.activate_video(data)
