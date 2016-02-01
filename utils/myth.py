@@ -486,9 +486,7 @@ class MythApi(object):
         else:
             return 'bool' in res_dict and res_dict['bool'] == 'true'
         
-    def find_in_mythvideo(self, filename, hostname=None):
-        if hostname is None:
-            hostname = self.server_name
+    def find_in_mythvideo(self, filename):
         res_dict = self._call_myth_api('Video', 'GetVideoByFileName',
                  { 'FileName': filename } )
         if 'Exception' in res_dict:
@@ -500,3 +498,9 @@ class MythApi(object):
         else:
             return res_dict['VideoMetadataInfo']
 
+    def remove_from_mythvideo(self, video_id):
+        res = self._call_myth_api('Video', 'RemoveVideoFromDB', { 'Id': video_id })
+        if 'Exception' in res:
+            raise Exception("Could not remove video with id {}: {}".format(video_id,  res['Exception']))
+        else:
+            return 'bool' in res and res['bool'] == 'true'
