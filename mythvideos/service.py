@@ -45,9 +45,7 @@ class MythVideoService(object):
                 then this will be set to 0.
                 An exception will be thrown if the value of this field cannot be cast to an integer.
             * releasedate - optional. If none is supplied, then this will be set to January 1, 1970. If
-                supplied, then this should be a string in ISO8601 format, for example:
-                "2015-11-28T00:00:00Z"
-                An exception will be thrown if this field is not in the valid format.
+                supplied, then this should be a datetime.datetime object.
             * contenttype - optional. If none is supplied, then this will be set by the database
                 back end to the table's default for this field. If supplied, then this must be one
                 of the values 'MOVIE', 'TELEVISION', 'ADULT', 'MUSICVIDEO', or 'HOMEVIDEO'
@@ -84,10 +82,8 @@ class MythVideoService(object):
         ct = data.get('contenttype', None)
         if ct:
             v.contenttype = ct
-        datestring = data.get('releasedate', None)
-        if datestring:
-            v.releasedate = iso8601.parse_date(datestring)
-        else:
+        v.releasedate = data.get('releasedate', None)
+        if not v.releasedate:
             v.releasedate = datetime.datetime(1970,1,1)
         print(v.releasedate)
         v.year = v.releasedate.year
@@ -133,7 +129,7 @@ class MythVideoService(object):
                 'hostname': target_host,
                 'title': orphan.title,
                 'subtitle': orphan.subtitle,
-                'releasedate': orphan.start_date.isoformat(),
+                'releasedate': orphan.start_date,
                 'length': orphan.duration, # this value is an integer, in minutes
                 }
         v = self.activate_video(data)
